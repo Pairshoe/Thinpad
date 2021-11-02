@@ -25,11 +25,39 @@ wire uart_dataready;
 wire uart_tbre;
 wire uart_tsre;
 
-parameter BASE_RAM_INIT_FILE = "I:\\uart.bin"; // BaseRAM Initial File
+parameter BASE_RAM_INIT_FILE = "I:\\random_4M.bin"; // BaseRAM Initial File
 
 initial begin 
-    reset_btn = 1;  #100;  reset_btn = 0;
-    cpld.pc_send_byte(8'b01100001); #4000;
+    reset_btn = 1;  #100;  reset_btn = 0;  #565000;
+    cpld.pc_send_byte(8'h57);  # 10000;
+    cpld.pc_send_byte(8'h41);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h10);  # 10000;
+    cpld.pc_send_byte(8'h80);  # 10000;
+    
+    cpld.pc_send_byte(8'h04);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    
+    cpld.pc_send_byte(8'h01);  # 10000;
+    cpld.pc_send_byte(8'h02);  # 10000;
+    cpld.pc_send_byte(8'h03);  # 10000;
+    cpld.pc_send_byte(8'h04);  # 10000;
+    
+    cpld.pc_send_byte(8'h44);  # 10000;
+    
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h10);  # 10000;
+    cpld.pc_send_byte(8'h80);  # 10000;
+    
+    cpld.pc_send_byte(8'h04);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;
+    /*cpld.pc_send_byte(8'b01100001); #4000;
     cpld.pc_send_byte(8'b01100010); #4000;
     cpld.pc_send_byte(8'b01100011); #4000;
     cpld.pc_send_byte(8'b01100100); #4000;
@@ -38,11 +66,12 @@ initial begin
     cpld.pc_send_byte(8'b01100111); #4000;
     cpld.pc_send_byte(8'b01101000); #4000;
     cpld.pc_send_byte(8'b01101001); #4000;
-    cpld.pc_send_byte(8'b01101010); #4000;
+    cpld.pc_send_byte(8'b01101010); #4000;*/
 end
 
 thinpad_top dut(
     .clk_50M(clk_50M),
+    //.clk_50M(clk_50M),
     .clk_11M0592(clk_11M0592),
     .reset_btn(reset_btn),
     .uart_rdn(uart_rdn),
