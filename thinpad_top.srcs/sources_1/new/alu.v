@@ -9,13 +9,13 @@ module alu(
     output wire[31:0]       r,
     output wire[3:0]        flags
 );
-        
+
     reg                     zf, cf, sf, vf;
     reg[31:0]               result;
 
     assign                  flags = { zf, cf, sf, vf };
     assign                  r = result;
-    
+
     always @(*) begin
         zf = 0;
         cf = 0;
@@ -24,40 +24,48 @@ module alu(
         case (op)
             `ADD: begin
                 result = a + b;
-                if (result < a)
+                if (result < a) begin
                     cf = 1'b1;
-                else
+                end
+                else begin
                     cf = 1'b0;
-                if ((result[31] != a[31]) && (a[31] == b[31]))
+                end
+                if ((result[31] != a[31]) && (a[31] == b[31])) begin
                     vf = 1'b1;
-                else
+                end
+                else begin
                     vf = 1'b0;
+                end
             end
-            
+
             `SUB: begin
                 result = a - b;
-                if (result > a)
+                if (result > a) begin
                     cf = 1'b1;
-                else
+                end
+                else begin
                     cf = 1'b0;
-                if ((result[31] != a[31]) && (a[31] == b[31]))
+                end
+                if ((result[31] != a[31]) && (a[31] == b[31])) begin
                     vf = 1'b1;
-                else
+                end
+                else begin
                     vf = 1'b0;
+                end
             end
-            
+
             `AND: begin
                 result = a & b;
             end
 
             `ANDN: begin
-                result = ~(a & b);
+                result = a & ~b;
             end
-            
+
             `OR: begin
                 result = a | b;
             end
-            
+
             `XOR: begin
                 result = a ^ b;
             end
@@ -69,36 +77,38 @@ module alu(
             `MINU: begin
                 result = a < b ? a : b;
             end
-            
+
             `NOT: begin
                 result = ~a;
             end
-            
+
             `SLL: begin
                 result = a << b;
             end
-            
+
             `SRL: begin
                 result = a >> b;
             end
-            
+
             `SRA: begin
-                result = $signed(a)>>>b;    
+                result = $signed(a) >>> b;    
             end
-            
+
             `ROL: begin
-                result = (a << b) | (a >> (32-b)); 
+                result = (a << b) | (a >> (32 - b)); 
             end 
-            
+
             default:
                 result = 0;
         endcase
-        
-        zf = result == 0? 1'b1: 1'b0;
-        if (result[31] == 1'b1) 
+
+        zf = (result == 0) ? 1'b1 : 1'b0;
+        if (result[31] == 1'b1) begin 
             sf = 1'b1;
-        else
+        end
+        else begin
             sf = 1'b0;
+        end
     end
 
 endmodule

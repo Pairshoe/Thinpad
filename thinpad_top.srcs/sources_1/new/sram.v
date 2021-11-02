@@ -341,7 +341,7 @@ module sram(
 
                 `STATE_UART_READ: begin
                     sram_state <= `STATE_IDLE;
-                    data <=  { 24'h000000, base_ram_data_wire[7:0] };
+                    data <= { 24'h000000, base_ram_data_wire[7:0] };
                     uart_rd_n <= 1'b1;
                     done <= 1'b1;
                 end
