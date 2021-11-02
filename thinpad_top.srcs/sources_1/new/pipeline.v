@@ -24,7 +24,7 @@ module pipeline(
     input wire        ins_b_select,
     input wire        ins_pc_select,
     input wire[4:0]   ins_op,
-    input wire[3:0]   ins_alu_op,
+    input wire[4:0]   ins_alu_op,
     input wire[31:0]  ins_imm,
     input wire        ins_mem_wr,
     input wire[1:0]   ins_mem_to_reg,
@@ -45,7 +45,7 @@ module pipeline(
     input wire        br_lt,
 
     // interface to alu
-    output wire[3:0]  alu_op,
+    output wire[4:0]  alu_op,
     output wire[31:0] alu_data_a,
     output wire[31:0] alu_data_b,
     input wire[31:0]  alu_data_r,
@@ -63,7 +63,7 @@ module pipeline(
     reg[4:0]          reg_id_exe_reg_d;
     reg               reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select;
     reg[4:0]          reg_id_exe_op;
-    reg[3:0]          reg_id_exe_alu_op;
+    reg[4:0]          reg_id_exe_alu_op;
     reg[31:0]         reg_id_exe_imm;
     reg               reg_id_exe_mem_wr;
     reg[1:0]          reg_id_exe_mem_to_reg;

@@ -1,23 +1,20 @@
 `default_nettype none
 `timescale 1ns / 1ps
 `include "alu.vh"
-/*
-本文件完全来源于网络学堂多周期处理器代码
-*/
 
 module alu(
-    input wire[3:0]        op,
-    input wire[31:0]       a,
-    input wire[31:0]       b,
+    input wire[3:0]         op,
+    input wire[31:0]        a,
+    input wire[31:0]        b,
     output wire[31:0]       r,
-    output wire[3:0]       flags
-    );
+    output wire[3:0]        flags
+);
         
-    reg zf,cf,sf,vf;
-    reg[31:0] result;
+    reg                     zf, cf, sf, vf;
+    reg[31:0]               result;
 
-    assign flags = {zf,cf,sf,vf};
-    assign r = result;
+    assign                  flags = { zf, cf, sf, vf };
+    assign                  r = result;
     
     always @(*) begin
         zf = 0;
@@ -25,7 +22,7 @@ module alu(
         sf = 0;
         vf = 0;
         case (op)
-            `ADD:begin
+            `ADD: begin
                 result = a + b;
                 if (result < a)
                     cf = 1'b1;
@@ -37,7 +34,7 @@ module alu(
                     vf = 1'b0;
             end
             
-            `SUB : begin
+            `SUB: begin
                 result = a - b;
                 if (result > a)
                     cf = 1'b1;
@@ -49,39 +46,51 @@ module alu(
                     vf = 1'b0;
             end
             
-           `AND : begin
+            `AND: begin
                 result = a & b;
             end
+
+            `ANDN: begin
+                result = ~(a & b);
+            end
             
-            `OR  : begin
+            `OR: begin
                 result = a | b;
             end
             
-            `XOR : begin
+            `XOR: begin
                 result = a ^ b;
             end
+
+            `XNOR: begin
+                result = ~(a ^ b);
+            end
+
+            `MINU: begin
+                result = a < b ? a : b;
+            end
             
-            `NOT : begin
+            `NOT: begin
                 result = ~a;
             end
             
-            `SLL : begin
+            `SLL: begin
                 result = a << b;
             end
             
-            `SRL : begin
+            `SRL: begin
                 result = a >> b;
             end
             
-            `SRA : begin
+            `SRA: begin
                 result = $signed(a)>>>b;    
             end
             
-            `ROL : begin
+            `ROL: begin
                 result = (a << b) | (a >> (32-b)); 
             end 
             
-            default :
+            default:
                 result = 0;
         endcase
         

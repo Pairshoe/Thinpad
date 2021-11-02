@@ -8,7 +8,7 @@ module decoder(
     input wire              br_eq,
     input wire              br_lt,
     output wire[4:0]        ext_op,
-    output wire[3:0]        alu_op,
+    output wire[4:0]        alu_op,
     output wire[31:0]       imm,
     output wire             b_select,
     output wire             a_select,
@@ -27,7 +27,7 @@ module decoder(
     wire[10:0]  sign_ext_jal;
 
     reg[4:0]    ext_op_reg;
-    reg[3:0]    alu_op_reg;
+    reg[4:0]    alu_op_reg;
     reg[31:0]   imm_reg;
     reg[1:0]    mem_to_reg_reg;
     reg         a_select_reg, b_select_reg, pc_select_reg, mem_wr_reg, reg_wr_reg;
@@ -128,6 +128,18 @@ module decoder(
                         ext_op_reg = `OP_XOR;
                         alu_op_reg = `XOR;
                     end
+                    10'b0100000_111: begin
+                        ext_op_reg = `OP_AND;
+                        alu_op_reg = `ANDN;
+                    end
+                    10'b0100000_100: begin
+                        ext_op_reg = `OP_XOR;
+                        alu_op_reg = `XNOR;
+                    end
+                    10'b0000101_110: begin
+                        ext_op_reg = `OP_MIN;
+                        alu_op_reg = `MINU;
+                    end
                 endcase
                 b_select_reg = 1'b1;
                 mem_to_reg_reg = 2'b01;
@@ -166,6 +178,16 @@ module decoder(
                     end
                     3'b001: begin // BNE
                         ext_op_reg = `OP_BNE;
+                        if(br_eq == 1'b0) begin
+                            imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
+                            a_select_reg = 1'b1;
+                            pc_select_reg = 1'b1;
+                        end
+                        else begin
+                        end
+                    end
+                    3'b100: begin // BLT
+                        ext_op_reg = `OP_BLT;
                         if(br_eq == 1'b0) begin
                             imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
                             a_select_reg = 1'b1;

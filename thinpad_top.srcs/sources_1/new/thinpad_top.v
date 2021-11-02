@@ -81,7 +81,7 @@ module thinpad_top(
     wire[31:0]          instr;
     wire[4:0]           reg_a, reg_b, reg_d;
     wire[4:0]           ins_op;
-    wire[3:0]           ins_alu_op;
+    wire[4:0]           ins_alu_op;
     wire[31:0]          imm;
     wire[1:0]           mem_to_reg;
     wire                a_select, b_select, pc_select, mem_wr, reg_wr;
@@ -136,7 +136,7 @@ module thinpad_top(
     );
 
     // interface to alu
-    wire[3:0]           alu_op;
+    wire[4:0]           alu_op;
     wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
     wire[3:0]           alu_flag;
 
