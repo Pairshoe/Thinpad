@@ -148,7 +148,7 @@ module thinpad_top(
         .flags          (alu_flag)
     );
 
-    //pipeline
+    // pipeline
     pipeline _pipeline(
         // clock and reset
         .clk            (clk_50M),

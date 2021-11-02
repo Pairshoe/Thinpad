@@ -1,4 +1,4 @@
-module SEG7_LUT(
+module seg7_lut(
     input wire[3:0]   idig,
     output wire[7:0]  oseg_out
 );
@@ -7,8 +7,8 @@ module SEG7_LUT(
 
     assign            oseg_out = { ~oseg, 1'b0 };
 
-    always @(iDIG) begin
-        case(iDIG)
+    always @(idig) begin
+        case(idig)
             4'h1: oseg = 7'b1110110;    // ---t----
             4'h2: oseg = 7'b0100001;    // |      |
             4'h3: oseg = 7'b0100100;    // lt    rt
