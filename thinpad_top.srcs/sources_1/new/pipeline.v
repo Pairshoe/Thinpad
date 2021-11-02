@@ -1,5 +1,5 @@
 `default_nettype none
-`include "alu.vh"
+`timescale 1ns / 1ps
 `include "ops.vh"
 
 module pipeline(

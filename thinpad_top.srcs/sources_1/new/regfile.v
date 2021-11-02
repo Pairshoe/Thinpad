@@ -7,17 +7,17 @@ module regfile(
     input wire          we,
     input wire[4:0]     waddr,
     input wire[31:0]    wdata,
-    
+
     input wire[4:0]     raddr1,
     output reg[31:0]    rdata1,
     input wire[4:0]     raddr2,
     output reg[31:0]    rdata2
-    );
-    
-    reg[31:0] registers[0:31];
-    
+);
+
+    reg[31:0]           registers[0:31];
+
     always @(posedge clk or posedge rst) begin
-        if(rst) begin
+        if (rst) begin
             registers[0] = 32'h00000000;
             registers[1] = 32'h00000000;
             registers[2] = 32'h00000000;
@@ -55,18 +55,23 @@ module regfile(
             registers[waddr] <= wdata;
         end
     end
-    
+
     always @(*) begin
-        if (raddr1 == 32'b0)
+        if (raddr1 == 32'b0) begin
             rdata1 = 32'b0;
-        else
+        end
+        else begin
             rdata1 = registers[raddr1];
+        end
     end
-    
+
     always @(*) begin
-        if (raddr2 == 32'b0)
+        if (raddr2 == 32'b0) begin
             rdata2 = 32'b0;
-        else
+        end
+        else begin
             rdata2 = registers[raddr2];
+        end
     end
+
 endmodule

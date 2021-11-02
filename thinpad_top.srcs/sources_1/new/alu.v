@@ -17,41 +17,19 @@ module alu(
     assign                  r = result;
 
     always @(*) begin
-        zf = 0;
-        cf = 0;
-        sf = 0;
-        vf = 0;
-        case (op)
+        zf = 0;  cf = 0;  sf = 0;  vf = 0;
+
+        case(op)
             `ADD: begin
                 result = a + b;
-                if (result < a) begin
-                    cf = 1'b1;
-                end
-                else begin
-                    cf = 1'b0;
-                end
-                if ((result[31] != a[31]) && (a[31] == b[31])) begin
-                    vf = 1'b1;
-                end
-                else begin
-                    vf = 1'b0;
-                end
+                cf = (result < a) ? 1'b1 : 1'b0;
+                vf = ((result[31] != a[31]) && (a[31] == b[31])) ? 1'b1 : 1'b0;
             end
 
             `SUB: begin
                 result = a - b;
-                if (result > a) begin
-                    cf = 1'b1;
-                end
-                else begin
-                    cf = 1'b0;
-                end
-                if ((result[31] != a[31]) && (a[31] == b[31])) begin
-                    vf = 1'b1;
-                end
-                else begin
-                    vf = 1'b0;
-                end
+                cf = (result > a) ? 1'b1 : 1'b0;
+                vf = ((result[31] != a[31]) && (a[31] == b[31])) ? 1'b1 : 1'b0;
             end
 
             `AND: begin
@@ -98,17 +76,13 @@ module alu(
                 result = (a << b) | (a >> (32 - b)); 
             end 
 
-            default:
+            default: begin
                 result = 0;
+            end
         endcase
 
         zf = (result == 0) ? 1'b1 : 1'b0;
-        if (result[31] == 1'b1) begin 
-            sf = 1'b1;
-        end
-        else begin
-            sf = 1'b0;
-        end
+        sf = (result[31] == 1'b1) ? 1'b1 : 1'b0;
     end
 
 endmodule

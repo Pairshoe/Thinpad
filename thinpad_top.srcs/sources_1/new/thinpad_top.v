@@ -5,14 +5,14 @@ module thinpad_top(
     input wire          clk_50M,
     input wire          clk_11M0592,
 
-    input wire          clock_btn,
+    // input wire          clock_btn,
     input wire          reset_btn,
 
-    input wire[3:0]     touch_btn,
-    input wire[31:0]    dip_sw,
-    output wire[15:0]   leds,
-    output wire[7:0]    dpy0,
-    output wire[7:0]    dpy1,
+    // input wire[3:0]     touch_btn,
+    // input wire[31:0]    dip_sw,
+    // output wire[15:0]   leds,
+    // output wire[7:0]    dpy0,
+    // output wire[7:0]    dpy1,
 
     // uart signal
     output wire         uart_rdn,
