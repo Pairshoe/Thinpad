@@ -35,14 +35,93 @@ module thinpad_top(
     output wire[3:0]    ext_ram_be_n,
     output wire         ext_ram_ce_n,
     output wire         ext_ram_oe_n,
-    output wire         ext_ram_we_n
+    output wire         ext_ram_we_n,
+
+    // debug mode signals
+    output wire[31:0]   reg_if_id_pc_now,
+    output wire[31:0]   reg_if_id_instr,
+    output wire         reg_if_id_abort,
+
+    output wire[31:0]   reg_id_exe_pc_now,
+    output wire[31:0]   reg_id_exe_data_a, reg_id_exe_data_b,
+    output wire[4:0]    reg_id_exe_reg_d,
+    output wire         reg_id_exe_a_select,
+    output wire         reg_id_exe_b_select,
+    output wire         reg_id_exe_pc_select,
+    output wire[4:0]    reg_id_exe_op,
+    output wire[4:0]    reg_id_exe_alu_op,
+    output wire[31:0]   reg_id_exe_imm,
+    output wire         reg_id_exe_mem_wr,
+    output wire[1:0]    reg_id_exe_mem_to_reg,
+    output wire         reg_id_exe_reg_wr,
+    output wire         reg_id_exe_abort,
+
+    output wire[31:0]   reg_exe_mem_pc_now,
+    output wire[31:0]   reg_exe_mem_data_r,
+    output wire[31:0]   reg_exe_mem_data_b,
+    output wire         reg_exe_mem_pc_select,
+    output wire[4:0]    reg_exe_mem_reg_d,
+    output wire[4:0]    reg_exe_mem_op,
+    output wire         reg_exe_mem_mem_wr,
+    output wire[1:0]    reg_exe_mem_mem_to_reg,
+    output wire         reg_exe_mem_reg_wr,
+    output wire         reg_exe_mem_abort,
+
+    output wire[31:0]   reg_mem_wb_data,
+    output wire[4:0]    reg_mem_wb_reg_d,
+    output wire[4:0]    reg_mem_wb_op,
+    output wire         reg_mem_wb_reg_wr,
+    output wire         reg_mem_wb_abort,
+
+    output wire[3:0]    stall_if,
+    output wire[3:0]    stall_id,
+    output wire[3:0]    stall_exe,
+    output wire[3:0]    stall_mem,
+    output wire[3:0]    stall_wb,
+    output wire[31:0]   pc,
+    output wire[2:0]    time_counter,
+
+    output wire          mem_oe,
+    output wire          mem_we,
+    output wire          mem_be,
+    output wire[31:0]    mem_address,
+    output wire[31:0]    mem_data_in,
+    output wire[31:0]    mem_data_out,
+
+    output wire[31:0]    instr,
+    output wire[4:0]     reg_a,
+    output wire[4:0]     reg_b,
+    output wire[4:0]     reg_d,
+    output wire[4:0]     ins_op,
+    output wire[4:0]     ins_alu_op,
+    output wire[31:0]    imm,
+    output wire[1:0]     mem_to_reg,
+    output wire          a_select,
+    output wire          b_select,
+    output wire          pc_select,
+    output wire          mem_wr,
+    output wire          reg_wr,
+
+    output wire[4:0]     reg_waddr,
+    output wire[31:0]    reg_wdata,
+    output wire          reg_we,
+    output wire[4:0]     reg_raddr1,
+    output wire[4:0]     reg_raddr2,
+    output wire[31:0]    reg_rdata1,
+    output wire[31:0]    reg_rdata2,
+
+    output wire[4:0]     alu_op,
+    output wire[31:0]    alu_data_a,
+    output wire[31:0]    alu_data_b,
+    output wire[31:0]    alu_data_r,
+    output wire[3:0]     alu_flag
 );
 
     // interface to sram and uart
-    wire                mem_oe, mem_we, mem_be;
+    /*wire                mem_oe, mem_we, mem_be;
     wire[31:0]          mem_address;
     wire[31:0]          mem_data_in;
-    wire[31:0]          mem_data_out;
+    wire[31:0]          mem_data_out;*/
 
     sram _sram(
         .clk            (clk_50M),
@@ -75,16 +154,16 @@ module thinpad_top(
         .uart_dataready (uart_dataready),
         .uart_tbre      (uart_tbre),
         .uart_tsre      (uart_tsre)
-);
+    );
 
     // interface to decoder
-    wire[31:0]          instr;
+    /*wire[31:0]          instr;
     wire[4:0]           reg_a, reg_b, reg_d;
     wire[4:0]           ins_op;
     wire[4:0]           ins_alu_op;
     wire[31:0]          imm;
     wire[1:0]           mem_to_reg;
-    wire                a_select, b_select, pc_select, mem_wr, reg_wr;
+    wire                a_select, b_select, pc_select, mem_wr, reg_wr;*/
 
     decoder _decoder(
         .inst           (instr),
@@ -116,11 +195,11 @@ module thinpad_top(
     );
 
     // interface to regfile
-    wire[4:0]           reg_waddr;
+    /*wire[4:0]           reg_waddr;
     wire[31:0]          reg_wdata;
     wire                reg_we;
     wire[4:0]           reg_raddr1, reg_raddr2;
-    wire[31:0]          reg_rdata1, reg_rdata2;
+    wire[31:0]          reg_rdata1, reg_rdata2;*/
 
     regfile _regfile(
         .clk            (clk_50M),
@@ -136,9 +215,9 @@ module thinpad_top(
     );
 
     // interface to alu
-    wire[4:0]           alu_op;
+    /*wire[4:0]           alu_op;
     wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
-    wire[3:0]           alu_flag;
+    wire[3:0]           alu_flag;*/
 
     alu _alu(
         .op             (alu_op),
@@ -196,7 +275,52 @@ module thinpad_top(
         .alu_data_a     (alu_data_a),
         .alu_data_b     (alu_data_b),
         .alu_data_r     (alu_data_r),
-        .alu_flag       (alu_flag)
+        .alu_flag       (alu_flag),
+
+        // debug mode signals
+        .reg_if_id_pc_now       (reg_if_id_pc_now),
+        .reg_if_id_instr        (reg_if_id_instr),
+        .reg_if_id_abort        (reg_if_id_abort),
+
+        .reg_id_exe_pc_now      (reg_id_exe_pc_now),
+        .reg_id_exe_data_a      (reg_id_exe_data_a),
+        .reg_id_exe_data_b      (reg_id_exe_data_b),
+        .reg_id_exe_reg_d       (reg_id_exe_reg_d),
+        .reg_id_exe_a_select    (reg_id_exe_a_select),
+        .reg_id_exe_b_select    (reg_id_exe_b_select),
+        .reg_id_exe_pc_select   (reg_id_exe_pc_select),
+        .reg_id_exe_op          (reg_id_exe_op),
+        .reg_id_exe_alu_op      (reg_id_exe_alu_op),
+        .reg_id_exe_imm         (reg_id_exe_imm),
+        .reg_id_exe_mem_wr      (reg_id_exe_mem_wr),
+        .reg_id_exe_mem_to_reg  (reg_id_exe_mem_to_reg),
+        .reg_id_exe_reg_wr      (reg_id_exe_reg_wr),
+        .reg_id_exe_abort       (reg_id_exe_abort),
+
+        .reg_exe_mem_pc_now     (reg_exe_mem_pc_now),
+        .reg_exe_mem_data_r     (reg_exe_mem_data_r),
+        .reg_exe_mem_data_b     (reg_exe_mem_data_b),
+        .reg_exe_mem_pc_select  (reg_exe_mem_pc_select),
+        .reg_exe_mem_reg_d      (reg_exe_mem_reg_d),
+        .reg_exe_mem_op         (reg_exe_mem_op),
+        .reg_exe_mem_mem_wr     (reg_exe_mem_mem_wr),
+        .reg_exe_mem_mem_to_reg (reg_exe_mem_mem_to_reg),
+        .reg_exe_mem_reg_wr     (reg_exe_mem_reg_wr),
+        .reg_exe_mem_abort      (reg_exe_mem_abort),
+
+        .reg_mem_wb_data        (reg_mem_wb_data),
+        .reg_mem_wb_reg_d       (reg_mem_wb_reg_d),
+        .reg_mem_wb_op          (reg_mem_wb_op),
+        .reg_mem_wb_reg_wr      (reg_mem_wb_reg_wr),
+        .reg_mem_wb_abort       (reg_mem_wb_abort),
+
+        .stall_if               (stall_if),
+        .stall_id               (stall_id),
+        .stall_exe              (stall_exe),
+        .stall_mem              (stall_mem),
+        .stall_wb               (stall_wb),
+        .pc                     (pc),
+        .time_counter           (time_counter)
     );
 
 endmodule

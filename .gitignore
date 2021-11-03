@@ -5,6 +5,7 @@ thinpad_top.sim/
 *.jou
 *.log
 *.dcp
+*.wcfg
 /.lint/
 /.Xil
 /.Xilinx

@@ -3,7 +3,7 @@
 `include "alu.vh"
 
 module alu(
-    input wire[3:0]         op,
+    input wire[4:0]         op,
     input wire[31:0]        a,
     input wire[31:0]        b,
     output wire[31:0]       r,

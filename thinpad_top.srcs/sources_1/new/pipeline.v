@@ -49,9 +49,54 @@ module pipeline(
     output wire[31:0] alu_data_a,
     output wire[31:0] alu_data_b,
     input wire[31:0]  alu_data_r,
-    input wire[3:0]   alu_flag
+    input wire[3:0]   alu_flag,
+
+    // debug mode signals
+    output reg[31:0]  reg_if_id_pc_now,
+    output reg[31:0]  reg_if_id_instr,
+    output reg        reg_if_id_abort,
+
+    output reg[31:0]  reg_id_exe_pc_now,
+    output reg[31:0]  reg_id_exe_data_a, reg_id_exe_data_b,
+    output reg[4:0]   reg_id_exe_reg_d,
+    output reg        reg_id_exe_a_select,
+    output reg        reg_id_exe_b_select,
+    output reg        reg_id_exe_pc_select,
+    output reg[4:0]   reg_id_exe_op,
+    output reg[4:0]   reg_id_exe_alu_op,
+    output reg[31:0]  reg_id_exe_imm,
+    output reg        reg_id_exe_mem_wr,
+    output reg[1:0]   reg_id_exe_mem_to_reg,
+    output reg        reg_id_exe_reg_wr,
+    output reg        reg_id_exe_abort,
+
+    output reg[31:0]  reg_exe_mem_pc_now,
+    output reg[31:0]  reg_exe_mem_data_r,
+    output reg[31:0]  reg_exe_mem_data_b,
+    output reg        reg_exe_mem_pc_select,
+    output reg[4:0]   reg_exe_mem_reg_d,
+    output reg[4:0]   reg_exe_mem_op,
+    output reg        reg_exe_mem_mem_wr,
+    output reg[1:0]   reg_exe_mem_mem_to_reg,
+    output reg        reg_exe_mem_reg_wr,
+    output reg        reg_exe_mem_abort,
+
+    output reg[31:0]  reg_mem_wb_data,
+    output reg[4:0]   reg_mem_wb_reg_d,
+    output reg[4:0]   reg_mem_wb_op,
+    output reg        reg_mem_wb_reg_wr,
+    output reg        reg_mem_wb_abort,
+
+    output reg[3:0]   stall_if,
+    output reg[3:0]   stall_id,
+    output reg[3:0]   stall_exe,
+    output reg[3:0]   stall_mem,
+    output reg[3:0]   stall_wb,
+    output reg[31:0]  pc,
+    output reg[2:0]   time_counter
 );
 
+    /* release mode signals
     // regs between if and id
     reg[31:0]         reg_if_id_pc_now;
     reg[31:0]         reg_if_id_instr;
@@ -90,7 +135,7 @@ module pipeline(
 
     reg[3:0]          stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     reg[31:0]         pc;
-    reg[2:0]          time_counter;
+    reg[2:0]          time_counter;*/
 
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
