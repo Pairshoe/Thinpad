@@ -125,7 +125,7 @@ module sram(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            sram_state <= `STATE_IDLE;
+            sram_state <= `STATE_SELECT;
             uart_write_state <= `STATE_IDLE;
             uart_read_state <= `STATE_IDLE;
             data_z <= 1'b1;
@@ -136,23 +136,15 @@ module sram(
             ext_we_n <= 1'b1;
             uart_rd_n <= 1'b1;
             uart_wr_n <= 1'b1;
-            uart_state_data <= 8'b00000000;
+            uart_state_data <= 8'b00100001;
         end
         else begin
             case(sram_state)
-                `STATE_IDLE: begin
-                    sram_state <= `STATE_SELECT;
-                    uart_write_state <= `STATE_UART_WRITE_CHECK_0;
-                    uart_read_state <= `STATE_UART_READ_CHECK;
-                    done <= 1'b0;
-                    data_z <= 1'b1;
-                end
-
                 `STATE_SELECT: begin
                     if (we) begin
                         case({use_sram, use_uart})
                             2'b10: begin
-                                sram_state <= `STATE_SRAM_WRITE;
+                                sram_state <= `STATE_SRAM_WRITE_0;
                                 data_z <= 1'b0;
                                 if (use_ext) begin
                                     if (be) begin
@@ -176,7 +168,6 @@ module sram(
                                     else begin
                                         ext_ram_data <= data_in;
                                     end                               
-                                    ext_we_n <= 1'b0;
                                 end
                                 else begin
                                     if (be) begin
@@ -204,7 +195,7 @@ module sram(
                                 end
                             end
                             2'b01: begin
-                                sram_state <= `STATE_UART_WRITE_WAIT;
+                                sram_state <= `STATE_UART_WRITE_0;
                                 uart_state_data[5] <= 1'b0;
                                 data_z <= 1'b0;
                                 uart_wr_n <= 1'b0;
@@ -228,12 +219,12 @@ module sram(
                                 end
                             end
                             3'b010: begin
-                                sram_state <= `STATE_UART_READ_WAIT;
+                                sram_state <= `STATE_UART_READ_0;
                                 uart_state_data[0] <= 1'b0;
                                 uart_rd_n <= 1'b0;
                             end
                             3'b001: begin
-                                sram_state <= `STATE_IDLE;
+                                sram_state <= `STATE_DATA_UPDATE;
                                 data <= { 24'h000000, uart_state_data };
                                 done <= 1'b1;
                             end
@@ -245,20 +236,29 @@ module sram(
                     end
                 end
 
-                `STATE_SRAM_WRITE: begin
-                    sram_state <= `STATE_IDLE;
+                `STATE_SRAM_WRITE_0: begin
+                    sram_state <= `STATE_SRAM_WRITE_1;
+                    ext_we_n <= 1'b0;
+                end
+
+                `STATE_SRAM_WRITE_1: begin
+                    sram_state <= `STATE_SRAM_WRITE_2;
                     if (use_ext) begin
                         ext_we_n <= 1'b1;
                     end
                     else begin
                         base_we_n <= 1'b1;
                     end
+                end
+
+                `STATE_SRAM_WRITE_2: begin
+                    sram_state <= `STATE_DATA_UPDATE;
                     data_z <= 1'b1;
                     done <= 1'b1;
                 end
 
                 `STATE_SRAM_READ: begin
-                    sram_state <= `STATE_IDLE;
+                    sram_state <= `STATE_DATA_UPDATE;
                     if (use_ext) begin
                         ext_oe_n <= 1'b1;
                         if (be) begin
@@ -326,26 +326,36 @@ module sram(
                     done <= 1'b1;
                 end
 
-                `STATE_UART_WRITE_WAIT: begin // uart write needs 2 cycles
-                    sram_state <= `STATE_UART_WRITE;
+                `STATE_UART_WRITE_0: begin // uart write needs 2 cycles
+                    sram_state <= `STATE_UART_WRITE_1;
                 end
 
-                `STATE_UART_WRITE: begin
-                    sram_state <= `STATE_IDLE;
+                `STATE_UART_WRITE_1: begin
+                    sram_state <= `STATE_DATA_UPDATE;
+                    uart_write_state <= `STATE_UART_WRITE_CHECK_0;
                     uart_wr_n <= 1'b1;
                     data_z <= 1'b1;
                     done <= 1'b1;
+                end        
+
+                `STATE_UART_READ_0: begin // uart read needs 2 cycles
+                    sram_state <= `STATE_UART_READ_1;
                 end
 
-                `STATE_UART_READ_WAIT: begin // uart read needs 2 cycles
-                    sram_state <= `STATE_UART_READ;
-                end
-
-                `STATE_UART_READ: begin
-                    sram_state <= `STATE_IDLE;
+                `STATE_UART_READ_1: begin
+                    sram_state <= `STATE_DATA_UPDATE;
+                    uart_read_state <= `STATE_UART_READ_CHECK;
                     data <= { 24'h000000, base_ram_data_wire[7:0] };
                     uart_rd_n <= 1'b1;
                     done <= 1'b1;
+                end
+
+                `STATE_DATA_UPDATE: begin
+                    sram_state <= `STATE_SELECT;
+                    done <= 1'b0;
+                end
+
+                default: begin
                 end
             endcase
 

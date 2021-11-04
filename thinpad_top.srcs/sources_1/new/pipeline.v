@@ -162,13 +162,13 @@ module pipeline(
         end
         else begin
             // 7 clk posedges for a cycle
-            time_counter <= time_counter == 6 ? 0 : time_counter + 1;
+            time_counter <= time_counter == 7 ? 0 : time_counter + 1;
             // stall signal countdown
-            stall_if <= time_counter == 6 ? (stall_if > 0 ? stall_if - 1 : 0) : stall_if;
-            stall_id <= time_counter == 6 ? (stall_id > 0 ? stall_id - 1 : 0) : stall_id;
-            stall_exe <= time_counter == 6 ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
-            stall_mem <= time_counter == 6 ? (stall_mem > 0 ? stall_mem - 1 : 0) : stall_mem;
-            stall_wb <= time_counter == 6 ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
+            stall_if <= time_counter == 7 ? (stall_if > 0 ? stall_if - 1 : 0) : stall_if;
+            stall_id <= time_counter == 7 ? (stall_id > 0 ? stall_id - 1 : 0) : stall_id;
+            stall_exe <= time_counter == 7 ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
+            stall_mem <= time_counter == 7 ? (stall_mem > 0 ? stall_mem - 1 : 0) : stall_mem;
+            stall_wb <= time_counter == 7 ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
 
             // stage if
             if (stall_if == 0) begin
@@ -182,7 +182,7 @@ module pipeline(
                     2: begin 
                         mem_oe <= 0;
                     end
-                    5: begin
+                    6: begin
                         // update program counter
                         pc <= pc + 4;
                         reg_if_id_pc_now <= pc;
@@ -195,7 +195,7 @@ module pipeline(
             end
             else begin
                 // bubble insertion
-                if (time_counter == 5 && stall_id == 0) begin
+                if (time_counter == 6 && stall_id == 0) begin
                     reg_if_id_abort <= 1;
                 end
                 else begin
@@ -224,7 +224,7 @@ module pipeline(
                 else begin
                 end
 
-                if (time_counter == 5) begin
+                if (time_counter == 6) begin
                     reg_id_exe_pc_now <= reg_if_id_pc_now;
                     reg_id_exe_data_a <= regfile_rdata1;
                     reg_id_exe_data_b <= regfile_rdata2;
@@ -245,7 +245,7 @@ module pipeline(
             end
             else begin
                 // bubble insertion
-                if (time_counter == 5 && stall_exe == 0) begin
+                if (time_counter == 6 && stall_exe == 0) begin
                     reg_id_exe_abort <= 1;
                 end
                 else begin
@@ -255,10 +255,12 @@ module pipeline(
             // stage exe
             if (stall_exe == 0) begin
                 if (reg_id_exe_abort == 0) begin
-                    if (time_counter == 5) begin
+                    if (time_counter == 6) begin
                         // structural hazard
                         if (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW || reg_id_exe_op == `OP_SB || reg_id_exe_op == `OP_SW) begin
                             stall_if <= 2;
+                        end
+                        else begin
                         end
                     end
                     else begin
@@ -267,7 +269,7 @@ module pipeline(
                 else begin
                 end
 
-                if (time_counter == 5) begin
+                if (time_counter == 6) begin
                     reg_exe_mem_pc_now <= reg_id_exe_pc_now;
                     reg_exe_mem_data_r <= alu_data_r;
                     reg_exe_mem_data_b <= reg_id_exe_data_b;
@@ -284,7 +286,7 @@ module pipeline(
             end
             else begin
                 // bubble insertion
-                if (time_counter == 5 && stall_mem == 0) begin
+                if (time_counter == 6 && stall_mem == 0) begin
                     reg_exe_mem_abort <= 1;
                 end
                 else begin
@@ -311,7 +313,7 @@ module pipeline(
                             mem_oe <= 0;
                             mem_we <= 0;
                         end
-                        6: begin
+                        7: begin
                             // branch and jump
                             if (reg_exe_mem_pc_select) begin
                                 if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
@@ -333,7 +335,7 @@ module pipeline(
                 else begin
                 end
 
-                if (time_counter == 5) begin
+                if (time_counter == 6) begin
                     reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4);
                     reg_mem_wb_reg_d <= reg_exe_mem_reg_d;
                     reg_mem_wb_op <= reg_exe_mem_op;
@@ -345,7 +347,7 @@ module pipeline(
             end
             else begin
                 // bubble insertion
-                if (time_counter == 5 && stall_wb == 0) begin
+                if (time_counter == 6 && stall_wb == 0) begin
                     reg_mem_wb_abort <= 1;
                 end
                 else begin
