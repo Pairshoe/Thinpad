@@ -25,7 +25,7 @@ wire uart_dataready;
 wire uart_tbre;
 wire uart_tsre;
 
-parameter BASE_RAM_INIT_FILE = "I:\\kernel.bin"; // BaseRAM Initial File
+parameter BASE_RAM_INIT_FILE = "I:\\mem.bin"; // BaseRAM Initial File
 
 initial begin 
     reset_btn = 1;  #100;  reset_btn = 0;  #570000;

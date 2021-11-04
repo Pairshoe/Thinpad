@@ -5,7 +5,7 @@
 
 注意事项
 1. 请保持代码编码为 utf-8 ， Unix 换行符，尽量不要出现中文注释；
-2. 测例在 test 文件夹下，其中 reg_print.s 和 reg_print.bin 尚未经过测试，不保证正确；
+2. 测例在 tests 文件夹下，其中 reg_print.s 和 reg_print.bin 尚未经过测试，不保证正确；
 3. 源代码中 seg7_lut.v 尚未经过测试，不保证正确；
 4. 请勿在 thinpad_top.v 中实现代码逻辑；
 5. 请新建分支进行开发，分支命名形如 cod21_xxx 。
