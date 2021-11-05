@@ -190,7 +190,7 @@ module pipeline(
                     end
                 end
                 else begin
-                    if (stall_exe == 0 && reg_id_exe_abort == 0) begin
+                    /*if (stall_exe == 0 && reg_id_exe_abort == 0) begin
                         if ((reg_id_exe_reg_s == reg_exe_mem_reg_d || reg_id_exe_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
                             if (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW) begin
                                 stall_if <= 1;
@@ -238,8 +238,8 @@ module pipeline(
                         end
                     end
                     else begin
-                    end
-                    /*if (stall_id == 0 && reg_if_id_abort == 0) begin
+                    end*/
+                    if (stall_id == 0 && reg_if_id_abort == 0) begin
                         if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
                             stall_if <= 2;
                             stall_id <= 2;
@@ -258,7 +258,7 @@ module pipeline(
                         stall_if <= 1;
                     end
                     else begin
-                    end*/
+                    end
                 end
             end
             else begin
