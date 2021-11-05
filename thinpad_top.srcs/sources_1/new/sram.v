@@ -126,8 +126,8 @@ module sram(
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             sram_state <= `STATE_SELECT;
-            uart_write_state <= `STATE_IDLE;
-            uart_read_state <= `STATE_IDLE;
+            uart_write_state <= `STATE_UART_WRITE_CHECK_0;
+            uart_read_state <= `STATE_UART_READ_CHECK;
             data_z <= 1'b1;
             done <= 1'b0;
             base_oe_n <= 1'b1;
@@ -136,7 +136,7 @@ module sram(
             ext_we_n <= 1'b1;
             uart_rd_n <= 1'b1;
             uart_wr_n <= 1'b1;
-            uart_state_data <= 8'b00100001;
+            uart_state_data <= 8'b00000000;
         end
         else begin
             case(sram_state)
