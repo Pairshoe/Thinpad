@@ -265,23 +265,23 @@ module sram(
                             case(address[1:0])
                                 2'b00: begin
                                     sign = ext_ram_data_wire[7];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, ext_ram_data_wire[7:0] };
+                                    sign_ext <= { 24{ ext_ram_data_wire[7] } };
+                                    data <= { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
                                 end
                                 2'b01: begin
                                     sign = ext_ram_data_wire[15];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, ext_ram_data_wire[15:8] };
+                                    sign_ext <= { 24{ ext_ram_data_wire[15] } };
+                                    data <= { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
                                 end
                                 2'b10: begin
                                     sign = ext_ram_data_wire[23];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, ext_ram_data_wire[23:16] };
+                                    sign_ext <= { 24{ ext_ram_data_wire[23] } };
+                                    data <= { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
                                 end
                                 2'b11: begin
                                     sign = ext_ram_data_wire[31];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, ext_ram_data_wire[31:24] };
+                                    sign_ext <= { 24{ ext_ram_data_wire[31] } };
+                                    data <= { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
                                 end
                                 default: begin
                                 end
@@ -297,23 +297,23 @@ module sram(
                             case(address[1:0])
                                 2'b00: begin
                                     sign = base_ram_data_wire[7];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, base_ram_data_wire[7:0] };
+                                    sign_ext <= { 24{ base_ram_data_wire[7] } };
+                                    data <= { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
                                 end
                                 2'b01: begin
                                     sign = base_ram_data_wire[15];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, base_ram_data_wire[15:8] };
+                                    sign_ext <= { 24{ base_ram_data_wire[15] } };
+                                    data <= { { 24{ base_ram_data_wire[15] } }, base_ram_data_wire[15:8] };
                                 end
                                 2'b10: begin
                                     sign = base_ram_data_wire[23];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, base_ram_data_wire[23:16] };
+                                    sign_ext <= { 24{ base_ram_data_wire[23] } };
+                                    data <= { { 24{ base_ram_data_wire[23] } }, base_ram_data_wire[23:16] };
                                 end
                                 2'b11: begin
                                     sign = base_ram_data_wire[31];
-                                    sign_ext <= { 24{ sign } };
-                                    data <= { sign_ext, base_ram_data_wire[31:24] };
+                                    sign_ext <= { 24{ base_ram_data_wire[31] } };
+                                    data <= { { 24{ base_ram_data_wire[31] } }, base_ram_data_wire[31:24] };
                                 end
                                 default: begin
                                 end
