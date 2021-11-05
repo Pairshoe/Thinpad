@@ -102,6 +102,8 @@ module thinpad_top(
     output wire         mem_wr,
     output wire         reg_wr,
 
+    output wire[31:0]   id_dat_a,
+    output wire[31:0]   id_dat_b,
     output wire         br_eq,
     output wire         br_lt,
     output wire         br_un,
@@ -177,6 +179,7 @@ module thinpad_top(
     wire                a_select, b_select, pc_select, mem_wr, reg_wr;
 
     // interface to br_comparator
+    wire[31:0]          id_dat_a, id_dat_b;
     wire                br_eq, br_lt, br_un;
 
     // interface to regfile
@@ -243,8 +246,8 @@ module thinpad_top(
     );
 
     br_comparator _br_comparator(
-        .rdata1         (reg_rdata1),
-        .rdata2         (reg_rdata2),
+        .rdata1         (id_dat_a),
+        .rdata2         (id_dat_b),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
         .br_un          (br_un)
@@ -310,6 +313,8 @@ module thinpad_top(
         .regfile_wdata  (reg_wdata),
         
         // interface to branch comp
+        .id_dat_a       (id_dat_a),
+        .id_dat_b       (id_dat_b),
         .br_un          (br_un),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
