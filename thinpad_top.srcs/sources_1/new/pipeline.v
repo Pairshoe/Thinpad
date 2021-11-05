@@ -282,8 +282,8 @@ module pipeline(
                                 forwarding_select_b <= (ins_reg_t == reg_id_exe_reg_d) ? 1 : 0;
                             end
                             else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                                forwarding_select_a <= (ins_reg_s == reg_id_exe_reg_d) ? 2 : 0;
-                                forwarding_select_b <= (ins_reg_t == reg_id_exe_reg_d) ? 2 : 0;
+                                forwarding_select_a <= (ins_reg_s == reg_exe_mem_reg_d) ? 2 : 0;
+                                forwarding_select_b <= (ins_reg_t == reg_exe_mem_reg_d) ? 2 : 0;
                             end
                             else begin
                             end
@@ -366,7 +366,6 @@ module pipeline(
                     reg_id_exe_pc_now <= reg_if_id_pc_now;
                     reg_id_exe_data_a <= id_dat_a;
                     reg_id_exe_data_b <= id_dat_b;
-                    reg_id_exe_data_b <= regfile_rdata2;
                     //reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4);
                     /*reg_id_exe_data_a <= regfile_rdata1;
                     reg_id_exe_data_b <= regfile_rdata2;*/
