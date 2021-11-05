@@ -40,7 +40,7 @@ initial begin
     cpld.pc_send_byte(8'h68);  # 3000;
     cpld.pc_send_byte(8'h69);  # 3000;
     cpld.pc_send_byte(8'h6a);  # 3000;*/
-    /*#570000;
+    #570000;
     // W
     cpld.pc_send_byte(8'h57);  # 10000;
     // A
@@ -71,7 +71,7 @@ initial begin
     cpld.pc_send_byte(8'h04);  # 10000;
     cpld.pc_send_byte(8'h00);  # 10000;
     cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;*/
+    cpld.pc_send_byte(8'h00);  # 10000;
 end
 
 thinpad_top dut(
