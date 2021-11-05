@@ -2,9 +2,11 @@
 `timescale 1ns / 1ps
 `include "ops.vh"
 `include "alu.vh"
+`include "exception_interrupt.vh"
 
 module decoder(
     input wire[31:0]        inst,
+    input wire[31:0]        csr_data,
     input wire              br_eq,
     input wire              br_lt,
     output wire[4:0]        ext_op,
@@ -15,10 +17,13 @@ module decoder(
     output wire[4:0]        reg_a,
     output wire[4:0]        reg_b,
     output wire[4:0]        reg_d,
+    output wire[11:0]       csr,
     output wire             pc_select,
     output wire             mem_wr,
     output wire[1:0]        mem_to_reg,
-    output wire             reg_wr
+    output wire             reg_wr,
+    output wire             csr_reg_wr,
+    output wire[3:0]        exception
 );
 
     wire        sign;
@@ -30,21 +35,24 @@ module decoder(
     reg[4:0]    alu_op_reg;
     reg[31:0]   imm_reg;
     reg[1:0]    mem_to_reg_reg;
-    reg         a_select_reg, b_select_reg, pc_select_reg, mem_wr_reg, reg_wr_reg;
+    reg         a_select_reg, b_select_reg, pc_select_reg, mem_wr_reg, reg_wr_reg, csr_reg_wr_reg;
+    reg         exception_reg;
 
     assign sign = inst[31];
     assign unsign_ext = { 27{ 1'b0 } };
     assign sign_ext = { 20{ sign } };
-    assign sign_ext_jal = { 12{ sign } };
+    assign sign_ext_jal = { 11{ sign } };
     assign reg_d = inst[11:7];
     assign reg_a = ext_op == `OP_LUI ? 5'b00000 : inst[19:15];
     assign reg_b = inst[24:20];
+    assign csr = inst[31:20];
 
     assign ext_op = ext_op_reg;
     assign alu_op = alu_op_reg;
     assign imm = imm_reg;
     assign a_select = a_select_reg, b_select = b_select_reg, pc_select = pc_select_reg;
-    assign mem_wr = mem_wr_reg, mem_to_reg = mem_to_reg_reg, reg_wr = reg_wr_reg;
+    assign mem_wr = mem_wr_reg, mem_to_reg = mem_to_reg_reg, reg_wr = reg_wr_reg, csr_reg_wr = csr_reg_wr_reg;
+    assign exception = exception_reg;
 
     always @(*) begin
         ext_op_reg = `OP_INVALID;
@@ -56,12 +64,21 @@ module decoder(
         mem_wr_reg = 1'b0;
         mem_to_reg_reg = 2'b00;
         reg_wr_reg = 1'b0;
+        csr_reg_wr_reg = 1'b0;
+        exception_reg = `NO_EXC;
         
         case(inst[6:0])
             7'b0000011: begin // LW, LB
                 case(inst[14:12])
-                    3'b000: ext_op_reg = `OP_LB;
-                    3'b010: ext_op_reg = `OP_LW;
+                    3'b000: begin
+                        ext_op_reg = `OP_LB;
+                    end
+                    3'b010: begin
+                        ext_op_reg = `OP_LW;
+                    end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
                 endcase
                 alu_op_reg = `ADD;
                 imm_reg = { sign_ext, inst[31:20] };
@@ -70,8 +87,15 @@ module decoder(
 
             7'b0100011: begin // SW, SB
                 case(inst[14:12])
-                    3'b000: ext_op_reg = `OP_SB;
-                    3'b010: ext_op_reg = `OP_SW;
+                    3'b000: begin
+                        ext_op_reg = `OP_SB;
+                    end
+                    3'b010: begin
+                        ext_op_reg = `OP_SW;
+                    end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
                 endcase
                 alu_op_reg = `ADD;
                 imm_reg = { sign_ext, inst[31:25], inst[11:7] };
@@ -105,12 +129,15 @@ module decoder(
                         alu_op_reg = `SRL;
                         imm_reg = { unsign_ext, inst[24:20] };
                     end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
                 endcase
                 mem_to_reg_reg = 2'b01;
                 reg_wr_reg = 1'b1;
             end
 
-            7'b0110011: begin // ADD, AND, OR, XOR
+            7'b0110011: begin // ADD, AND, ANDN, OR, XOR, XNOR, MINU, SLTU
                 case({ inst[31:25], inst[14:12] })
                     10'b0000000_000: begin
                         ext_op_reg = `OP_ADD;
@@ -139,6 +166,13 @@ module decoder(
                     10'b0000101_110: begin
                         ext_op_reg = `OP_MIN;
                         alu_op_reg = `MINU;
+                    end
+                    10'b0000000_011: begin
+                        ext_op_reg = `OP_SLT;
+                        alu_op_reg = `SLTU;
+                    end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
                     end
                 endcase
                 b_select_reg = 1'b1;
@@ -196,6 +230,9 @@ module decoder(
                         else begin
                         end
                     end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
                 endcase
             end
 
@@ -218,7 +255,58 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
+            7'b1110011: begin // CSRRC, CSRRS, CSRRW, EBREAK, ECALL, MRET
+                case(inst[14:12])
+                    3'b000: begin // EBREAK, ECALL, MRET
+                        case(inst[31:20])
+                            12'b000000000001: begin // EBREAK
+                                ext_op_reg = `OP_EBREAK;
+                                alu_op_reg = `ADD;
+                            end
+                            12'b000000000000: begin // ECALL
+                                ext_op_reg = `OP_ECALL;
+                                alu_op_reg = `ADD;
+                            end
+                            12'b001100000010: begin // MRET
+                                ext_op_reg = `OP_MRET;
+                                alu_op_reg = `ADD;
+                            end
+                            default: begin
+                                exception_reg = `ILLEGAL_INSTR_EXC;
+                            end
+                        endcase
+                    end
+                    3'b011: begin // CSRRC
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `NANDN;
+                        imm_reg = csr_data;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                    end
+                    3'b010: begin // CSRRS
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `OR;
+                        imm_reg = csr_data;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                    end
+                    3'b001: begin // CSRRW
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `ADD;
+                        imm_reg = csr_data;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                    end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
+                endcase
+            end
             default: begin
+                exception_reg = `ILLEGAL_INSTR_EXC;
             end
         endcase
     end

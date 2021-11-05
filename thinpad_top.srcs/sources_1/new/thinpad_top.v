@@ -169,15 +169,47 @@ module thinpad_top(
 
     // interface to decoder
     wire[31:0]          instr;
+    wire[31:0]          csr_data;
     wire[4:0]           reg_a, reg_b, reg_d;
+    wire[11:0]          csr;
     wire[4:0]           ins_op;
     wire[4:0]           ins_alu_op;
     wire[31:0]          imm;
     wire[1:0]           mem_to_reg;
-    wire                a_select, b_select, pc_select, mem_wr, reg_wr;
+    wire                a_select, b_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
+    wire[3:0]           exception;
 
     // interface to br_comparator
     wire                br_eq, br_lt, br_un;
+
+    // interface to csr_regfile
+    wire[31:0]          mtvec;
+    wire[31:0]          mscratch;
+    wire[31:0]          mepc;
+    wire[31:0]          mcause;
+    wire[31:0]          mstatus;
+    wire[31:0]          mie;
+    wire[31:0]          mip;
+    wire[31:0]          mtval;
+    wire                mtvec_we;
+    wire                mscratch_we;
+    wire                mepc_we;
+    wire                mcause_we;
+    wire                mstatus_we;
+    wire                mie_we;
+    wire                mip_we;
+    wire                mtval_we;
+    wire[31:0]          mtvec_write_data;
+    wire[31:0]          mscratch_write_data;
+    wire[31:0]          mepc_write_data;
+    wire[31:0]          mcause_write_data;
+    wire[31:0]          mstatus_write_data;
+    wire[31:0]          mie_write_data;
+    wire[31:0]          mip_write_data;
+    wire[31:0]          mtval_write_data;
+    wire                csr_we;
+    wire[11:0]          csr_write_addr;
+    wire[31:0]          csr_write_data;
 
     // interface to regfile
     wire[4:0]           reg_waddr;
@@ -226,6 +258,7 @@ module thinpad_top(
 
     decoder _decoder(
         .inst           (instr),
+        .csr_data       (csr_data),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
         .ext_op         (ins_op),
@@ -236,10 +269,13 @@ module thinpad_top(
         .reg_a          (reg_a),
         .reg_b          (reg_b),
         .reg_d          (reg_d),
+        .csr            (csr),
         .pc_select      (pc_select),
         .mem_wr         (mem_wr),
         .mem_to_reg     (mem_to_reg),
-        .reg_wr         (reg_wr)
+        .reg_wr         (reg_wr),
+        .csr_reg_wr     (csr_reg_wr),
+        .exception      (exception)
     );
 
     br_comparator _br_comparator(
@@ -248,6 +284,46 @@ module thinpad_top(
         .br_eq          (br_eq),
         .br_lt          (br_lt),
         .br_un          (br_un)
+    );
+
+    csr_regfile _csr_regfile(
+        .clk                (clk_50M),
+        .rst                (reset_btn),
+        .csr                (csr),
+        .csr_data           (csr_data),
+
+        // for read
+        .mtvec              (mtvec),
+        .mscratch           (mscratch),
+        .mepc               (mepc),
+        .mcause             (mcause),
+        .mstatus            (mstatus),
+        .mie                (mie),
+        .mip                (mip),
+        .mtval              (mtval),
+
+        // for write
+        .mtvec_we           (mtvec_we),
+        .mscratch_we        (mscratch_we),
+        .mepc_we            (mepc_we),
+        .mcause_we          (mcause_we),
+        .mstatus_we         (mstatus_we),
+        .mie_we             (mie_we),
+        .mip_we             (mip_we),
+        .mtval_we           (mtval_we),
+        .mtvec_write_data   (mtvec_write_data),
+        .mscratch_write_data(mscratch_write_data),
+        .mepc_write_data    (mepc_write_data),
+        .mcause_write_data  (mcause_write_data),
+        .mstatus_write_data (mstatus_write_data),
+        .mie_write_data     (mie_write_data),
+        .mip_write_data     (mip_write_data),
+        .mtval_write_data   (mtval_write_data),
+
+        // for writeback
+        .csr_we             (csr_we),
+        .csr_write_addr     (csr_write_addr),
+        .csr_write_data     (csr_write_data)
     );
 
     regfile _regfile(
