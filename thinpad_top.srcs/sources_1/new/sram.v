@@ -65,10 +65,12 @@ module sram(
 
     // inout
     reg                  data_z;
-    reg[31:0]            base_ram_data, ext_ram_data;
+    //reg[31:0]            base_ram_data, ext_ram_data;
 
-    assign               base_ram_data_wire = data_z ? 32'bz : base_ram_data;
-    assign               ext_ram_data_wire = data_z ? 32'bz : ext_ram_data;
+    //assign               base_ram_data_wire = data_z ? 32'bz : base_ram_data;
+    //assign               ext_ram_data_wire = data_z ? 32'bz : ext_ram_data;
+    assign               base_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
+    assign               ext_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
 
     // address
     assign               base_ram_addr = address[21:2];
@@ -128,8 +130,8 @@ module sram(
             ext_ram_be_n = 4'b0000;
         end
     end
-
-    always @(*) begin
+    
+    /*always @(*) begin
         if (use_uart) begin
             base_ram_data = { 24'h000000, data_in[7:0] };
         end
@@ -157,7 +159,7 @@ module sram(
                 end
             endcase
         end
-    end
+    end*/
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
