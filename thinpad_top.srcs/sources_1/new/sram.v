@@ -13,34 +13,34 @@ module sram(
 
     input wire[31:0]     address,
     input wire[31:0]     data_in,
-    output wire[31:0]    data_out,
+    output reg[31:0]     data_out,
     output reg           done,
 
     // interface to SRAM 
     inout wire[31:0]     base_ram_data_wire,
     output wire[19:0]    base_ram_addr,
-    output wire[3:0]     base_ram_be_n,
+    output reg[3:0]      base_ram_be_n,
     output wire          base_ram_ce_n,
-    output wire          base_ram_oe_n,
-    output wire          base_ram_we_n,
+    output reg           base_ram_oe_n,
+    output reg           base_ram_we_n,
 
     inout wire[31:0]     ext_ram_data_wire,
     output wire[19:0]    ext_ram_addr,
-    output wire[3:0]     ext_ram_be_n,
+    output reg[3:0]      ext_ram_be_n,
     output wire          ext_ram_ce_n,
-    output wire          ext_ram_oe_n,
-    output wire          ext_ram_we_n,
+    output reg           ext_ram_oe_n,
+    output reg           ext_ram_we_n,
 
     // interface to CPLD 
-    output wire          uart_rdn,
-    output wire          uart_wrn,
+    output reg           uart_rdn,
+    output reg           uart_wrn,
     input wire           uart_dataready,
     input wire           uart_tbre,
     input wire           uart_tsre
 );
 
     // oe
-    reg                  base_oe_n, ext_oe_n;
+    /*reg                  base_oe_n, ext_oe_n;
 
     assign               base_ram_oe_n = base_oe_n;
     assign               ext_ram_oe_n = ext_oe_n;
@@ -57,36 +57,11 @@ module sram(
     assign               base_ram_be_n = be_n;
     assign               ext_ram_be_n = be_n;
 
-    always @(*) begin
-        if (be) begin
-            case(address[1:0])
-                2'b00: begin
-                    be_n = 4'b1110;
-                end
-                2'b01: begin
-                    be_n = 4'b1101;
-                end
-                2'b10: begin
-                    be_n = 4'b1011;
-                end
-                2'b11: begin
-                    be_n = 4'b0111;
-                end
-                default: begin
-                    be_n = 4'b1111;
-                end
-            endcase
-        end
-        else begin
-            be_n = 4'b0000;
-        end
-    end
-
     // rd & wr
     reg                  uart_rd_n, uart_wr_n;
 
     assign               uart_rdn = uart_rd_n;
-    assign               uart_wrn = uart_wr_n;
+    assign               uart_wrn = uart_wr_n;*/
 
     // inout
     reg                  data_z;
@@ -112,10 +87,10 @@ module sram(
     assign               { base_ram_ce_n, ext_ram_ce_n } = use_uart ? 2'b11 : use_ext ? 2'b10 : 2'b01;
 
     // data_out
-    reg                  sign;
-    reg[23:0]            sign_ext;
-    reg[31:0]            data;
-    assign               data_out = data;
+    //reg                  sign;
+    //reg[23:0]            sign_ext;
+    //reg[31:0]            data;
+    //assign               data_out = data;
 
     // fsm
     reg[7:0]             uart_state_data;
@@ -123,19 +98,80 @@ module sram(
     reg[3:0]             uart_read_state;
     reg[3:0]             sram_state;
 
+    always @(*) begin
+        if (be) begin
+            case(address[1:0])
+                2'b00: begin
+                    base_ram_be_n = 4'b1110;
+                    ext_ram_be_n = 4'b1110;
+                end
+                2'b01: begin
+                    base_ram_be_n = 4'b1101;
+                    ext_ram_be_n = 4'b1101;
+                end
+                2'b10: begin
+                    base_ram_be_n = 4'b1011;
+                    ext_ram_be_n = 4'b1011;
+                end
+                2'b11: begin
+                    base_ram_be_n = 4'b0111;
+                    ext_ram_be_n = 4'b0111;
+                end
+                default: begin
+                    base_ram_be_n = 4'b1111;
+                    ext_ram_be_n = 4'b1111;
+                end
+            endcase
+        end
+        else begin
+            base_ram_be_n = 4'b0000;
+            ext_ram_be_n = 4'b0000;
+        end
+    end
+
+    always @(*) begin
+        if (use_uart) begin
+            base_ram_data <= { 24'h000000, data_in[7:0] };
+        end
+        else begin
+            case({be, address[1:0]})
+                3'b100: begin
+                    base_ram_data[7:0] = data_in[7:0];
+                    ext_ram_data[31:24] = data_in[7:0];
+                end
+                3'b101: begin
+                    base_ram_data[15:8] = data_in[7:0];
+                    ext_ram_data[31:24] = data_in[7:0];
+                end
+                3'b110: begin
+                    base_ram_data[23:16] = data_in[7:0];
+                    ext_ram_data[31:24] = data_in[7:0];
+                end
+                3'b111: begin
+                    base_ram_data[31:24] = data_in[7:0];
+                    ext_ram_data[31:24] = data_in[7:0];
+                end
+                default: begin
+                    base_ram_data = data_in;
+                    ext_ram_data = data_in;
+                end
+            endcase
+        end
+    end
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             sram_state <= `STATE_SELECT;
             uart_write_state <= `STATE_UART_WRITE_CHECK_0;
             uart_read_state <= `STATE_UART_READ_CHECK;
-            data_z <= 1'b1;
+            data_z <= 1'b0;
             done <= 1'b0;
-            base_oe_n <= 1'b1;
-            base_we_n <= 1'b1;
-            ext_oe_n <= 1'b1;
-            ext_we_n <= 1'b1;
-            uart_rd_n <= 1'b1;
-            uart_wr_n <= 1'b1;
+            base_ram_oe_n <= 1'b1;
+            base_ram_we_n <= 1'b1;
+            ext_ram_oe_n <= 1'b1;
+            ext_ram_we_n <= 1'b1;
+            uart_rdn <= 1'b1;
+            uart_wrn <= 1'b1;
             uart_state_data <= 8'b00000000;
         end
         else begin
@@ -145,8 +181,10 @@ module sram(
                         case({use_sram, use_uart})
                             2'b10: begin
                                 sram_state <= `STATE_SRAM_WRITE_0;
-                                data_z <= 1'b0;
-                                if (use_ext) begin
+                                base_ram_we_n <= use_ext ? 1 : 0;
+                                ext_ram_we_n <= use_ext ? 0 : 1;
+                                //data_z <= 1'b0;
+                                /*if (use_ext) begin
                                     if (be) begin
                                         case(address[1:0])
                                             2'b00: begin
@@ -192,40 +230,42 @@ module sram(
                                         base_ram_data <= data_in;
                                     end
                                     base_we_n <= 1'b0;
-                                end
+                                end*/
                             end
                             2'b01: begin
                                 sram_state <= `STATE_UART_WRITE_0;
+                                //uart_state_data[0] <= 1'b0;
                                 uart_state_data[5] <= 1'b0;
-                                data_z <= 1'b0;
-                                uart_wr_n <= 1'b0;
-                                base_ram_data <= { 24'h000000, data_in[7:0] };
+                                //data_z <= 1'b0;
+                                uart_wrn <= 1'b0;
+                                //base_ram_data <= { 24'h000000, data_in[7:0] };
                             end
                             default: begin
                             end
                         endcase
                     end
-                    else begin
-                    end
-                    if (oe) begin
+                    else if (oe) begin
                         case({ use_sram, use_uart, use_uart_state })
                             3'b100: begin
                                 sram_state <= `STATE_SRAM_READ;
+                                data_z <= 1'b1;
                                 if (use_ext) begin
-                                    ext_oe_n <= 1'b0;
+                                    ext_ram_oe_n <= 1'b0;
                                 end
                                 else begin
-                                    base_oe_n <= 1'b0;
+                                    base_ram_oe_n <= 1'b0;
                                 end
                             end
                             3'b010: begin
                                 sram_state <= `STATE_UART_READ_0;
+                                data_z <= 1'b1;
                                 uart_state_data[0] <= 1'b0;
-                                uart_rd_n <= 1'b0;
+                                //uart_state_data[5] <= 1'b0;
+                                uart_rdn <= 1'b0;
                             end
                             3'b001: begin
                                 sram_state <= `STATE_DATA_UPDATE;
-                                data <= { 24'h000000, uart_state_data };
+                                data_out <= { 24'h000000, uart_state_data };
                                 done <= 1'b1;
                             end
                             default: begin
@@ -238,62 +278,69 @@ module sram(
 
                 `STATE_SRAM_WRITE_0: begin
                     sram_state <= `STATE_SRAM_WRITE_1;
-                    ext_we_n <= 1'b0;
+                    //ext_we_n <= 1'b0;
                 end
 
                 `STATE_SRAM_WRITE_1: begin
                     sram_state <= `STATE_SRAM_WRITE_2;
-                    if (use_ext) begin
-                        ext_we_n <= 1'b1;
-                    end
-                    else begin
-                        base_we_n <= 1'b1;
-                    end
+                    base_ram_we_n <= 1'b1;
+                    ext_ram_we_n <= 1'b1;
+                    //if (use_ext) begin
+                        
+                    //end
+                    //else begin
+                        
+                    //end
                 end
 
                 `STATE_SRAM_WRITE_2: begin
                     sram_state <= `STATE_DATA_UPDATE;
-                    data_z <= 1'b1;
+                    //data_z <= 1'b1;
                     done <= 1'b1;
                 end
 
                 `STATE_SRAM_READ: begin
                     sram_state <= `STATE_DATA_UPDATE;
+                    base_ram_oe_n <= 1'b1;
+                    ext_ram_oe_n <= 1'b1;
                     if (use_ext) begin
-                        ext_oe_n <= 1'b1;
-                        if (be) begin
-                            case(address[1:0])
-                                2'b00: begin
-                                    sign = ext_ram_data_wire[7];
-                                    sign_ext <= { 24{ ext_ram_data_wire[7] } };
-                                    data <= { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
-                                end
-                                2'b01: begin
-                                    sign = ext_ram_data_wire[15];
-                                    sign_ext <= { 24{ ext_ram_data_wire[15] } };
-                                    data <= { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
-                                end
-                                2'b10: begin
-                                    sign = ext_ram_data_wire[23];
-                                    sign_ext <= { 24{ ext_ram_data_wire[23] } };
-                                    data <= { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
-                                end
-                                2'b11: begin
-                                    sign = ext_ram_data_wire[31];
-                                    sign_ext <= { 24{ ext_ram_data_wire[31] } };
-                                    data <= { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
-                                end
-                                default: begin
-                                end
-                            endcase
-                        end
-                        else begin
-                            data <= ext_ram_data_wire;
-                        end
+                        case({ be, address[1:0] })
+                            3'b100: begin
+                                data_out <= { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
+                            end
+                            3'b101: begin
+                                data_out <= { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
+                            end
+                            3'b110: begin
+                                data_out <= { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
+                            end
+                            3'b111: begin
+                                data_out <= { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
+                            end
+                            default: begin
+                                data_out <= ext_ram_data_wire;
+                            end
+                        endcase
                     end
                     else begin
-                        base_oe_n <= 1'b1;
-                        if (be) begin
+                        case({ be, address[1:0] })
+                            3'b100: begin
+                                data_out <= { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
+                            end
+                            3'b101: begin
+                                data_out <= { { 24{ base_ram_data_wire[15] } }, base_ram_data_wire[15:8] };
+                            end
+                            3'b110: begin
+                                data_out <= { { 24{ base_ram_data_wire[23] } }, base_ram_data_wire[23:16] };
+                            end
+                            3'b111: begin
+                                data_out <= { { 24{ base_ram_data_wire[31] } }, base_ram_data_wire[31:24] };
+                            end
+                            default: begin
+                                data_out <= base_ram_data_wire;
+                            end
+                        endcase
+                        /*if (be) begin
                             case(address[1:0])
                                 2'b00: begin
                                     sign = base_ram_data_wire[7];
@@ -321,7 +368,7 @@ module sram(
                         end
                         else begin
                             data <= base_ram_data_wire;
-                        end
+                        end*/
                     end
                     done <= 1'b1;
                 end
@@ -333,8 +380,8 @@ module sram(
                 `STATE_UART_WRITE_1: begin
                     sram_state <= `STATE_DATA_UPDATE;
                     uart_write_state <= `STATE_UART_WRITE_CHECK_0;
-                    uart_wr_n <= 1'b1;
-                    data_z <= 1'b1;
+                    uart_wrn <= 1'b1;
+                    //data_z <= 1'b1;
                     done <= 1'b1;
                 end        
 
@@ -345,13 +392,14 @@ module sram(
                 `STATE_UART_READ_1: begin
                     sram_state <= `STATE_DATA_UPDATE;
                     uart_read_state <= `STATE_UART_READ_CHECK;
-                    data <= { 24'h000000, base_ram_data_wire[7:0] };
-                    uart_rd_n <= 1'b1;
+                    data_out <= { 24'h000000, base_ram_data_wire[7:0] };
+                    uart_rdn <= 1'b1;
                     done <= 1'b1;
                 end
 
                 `STATE_DATA_UPDATE: begin
                     sram_state <= `STATE_SELECT;
+                    data_z <= 1'b0;
                     done <= 1'b0;
                 end
 
