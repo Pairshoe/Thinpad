@@ -374,7 +374,7 @@ module thinpad_top(
         .pc                     (pc),
         .time_counter           (time_counter),
         .forwarding_select_a    (forwarding_select_a),
-        .forwarding_select_a    (forwarding_select_b)
+        .forwarding_select_b    (forwarding_select_b)
     );
 
 endmodule
