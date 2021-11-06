@@ -25,7 +25,7 @@ wire uart_dataready;
 wire uart_tbre;
 wire uart_tsre;
 
-parameter BASE_RAM_INIT_FILE = "I:\\cod21-grp67\\tests\\kernel.bin"; // BaseRAM Initial File
+parameter BASE_RAM_INIT_FILE = "I:\\cod21-grp67\\tests\\ext_3.bin"; // BaseRAM Initial File
 
 initial begin 
     reset_btn = 1;  #100;  reset_btn = 0;
@@ -40,7 +40,7 @@ initial begin
     cpld.pc_send_byte(8'h68);  # 3000;
     cpld.pc_send_byte(8'h69);  # 3000;
     cpld.pc_send_byte(8'h6a);  # 3000;*/
-    #570000;
+    /*#570000;
     // W
     cpld.pc_send_byte(8'h57);  # 10000;
     // A
@@ -71,7 +71,7 @@ initial begin
     cpld.pc_send_byte(8'h04);  # 10000;
     cpld.pc_send_byte(8'h00);  # 10000;
     cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
+    cpld.pc_send_byte(8'h00);  # 10000;*/
 end
 
 thinpad_top dut(
