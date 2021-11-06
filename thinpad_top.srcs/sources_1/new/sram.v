@@ -59,7 +59,7 @@ module sram(
     assign               use_uart_state = (address == 32'h10000005);
     assign               use_sram = (32'h80000000 <= address && address < 32'h80800000);
     assign               use_ext = (32'h80400000 <= address);
-    assign               uart_state_data = sram_state == `STATE_SELECT ? (((uart_tbre == 1 && uart_tsre == 1) << 5) | uart_dataready) : 8'b00000000;
+    assign               uart_state_data = (state == `STATE_IDLE) ? (((uart_tbre == 1 && uart_tsre == 1) << 5) | uart_dataready) : 8'b00000000;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
