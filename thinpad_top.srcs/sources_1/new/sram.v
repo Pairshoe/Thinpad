@@ -131,7 +131,7 @@ module sram(
 
     always @(*) begin
         if (use_uart) begin
-            base_ram_data <= { 24'h000000, data_in[7:0] };
+            base_ram_data = { 24'h000000, data_in[7:0] };
         end
         else begin
             case({be, address[1:0]})
