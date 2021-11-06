@@ -29,19 +29,19 @@ module csr_regfile(
     input wire          mie_we,
     input wire          mip_we,
     input wire          mtval_we,
-    input wire[31:0]    mtvec_write_data,
-    input wire[31:0]    mscratch_write_data,
-    input wire[31:0]    mepc_write_data,
-    input wire[31:0]    mcause_write_data,
-    input wire[31:0]    mstatus_write_data,
-    input wire[31:0]    mie_write_data,
-    input wire[31:0]    mip_write_data,
-    input wire[31:0]    mtval_write_data,
+    input wire[31:0]    mtvec_wdata,
+    input wire[31:0]    mscratch_wdata,
+    input wire[31:0]    mepc_wdata,
+    input wire[31:0]    mcause_wdata,
+    input wire[31:0]    mstatus_wdata,
+    input wire[31:0]    mie_wdata,
+    input wire[31:0]    mip_wdata,
+    input wire[31:0]    mtval_wdata,
 
     // for writeback
     input wire          csr_we,
-    input wire[11:0]    csr_write_addr,
-    input wire[31:0]    csr_write_data
+    input wire[11:0]    csr_waddr,
+    input wire[31:0]    csr_wdata
 );
     reg[31:0]           reg_mtvec;
     reg[31:0]           reg_mscratch;
@@ -73,83 +73,83 @@ module csr_regfile(
         end
         else begin
             if (mtvec_we) begin
-                reg_mtvec <= mtvec_write_data;
+                reg_mtvec <= mtvec_wdata;
             end
             if (mscratch_we) begin
-                reg_mscratch <= mscratch_write_data;
+                reg_mscratch <= mscratch_wdata;
             end
             if (mepc_we) begin
-                reg_mepc <= mepc_write_data;
+                reg_mepc <= mepc_wdata;
             end
             if (mcause_we) begin
-                reg_mcause <= mcause_write_data;
+                reg_mcause <= mcause_wdata;
             end
             if (mstatus_we) begin
-                reg_mstatus <= mstatus_write_data;
+                reg_mstatus <= mstatus_wdata;
             end
             if (mie_we) begin
-                reg_mie <= mie_write_data;
+                reg_mie <= mie_wdata;
             end
             if (mip_we) begin
-                reg_mip <= mip_write_data;
+                reg_mip <= mip_wdata;
             end
             if (mtval_we) begin
-                reg_mtval <= mtval_write_data;
+                reg_mtval <= mtval_wdata;
             end
             if (csr_we) begin
-                case(csr_write_addr)
+                case(csr_waddr)
                     `MTVEC: begin
                         if (!mtval_we) begin
-                            reg_mtvec <= csr_write_data;
+                            reg_mtvec <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MSCRATCH: begin
                         if (!mscratch_we) begin
-                            reg_mscratch <= csr_write_data;
+                            reg_mscratch <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MEPC: begin
                         if (!mepc_we) begin
-                            reg_mepc <= csr_write_data;
+                            reg_mepc <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MCAUSE: begin
                         if (!mcause_we) begin
-                            reg_mcause <= csr_write_data;
+                            reg_mcause <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MSTATUS: begin
                         if (!mstatus_we) begin
-                            reg_mstatus <= csr_write_data;
+                            reg_mstatus <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MIE: begin
                         if (!mie_we) begin
-                            reg_mie <= csr_write_data;
+                            reg_mie <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MIP: begin
                         if (!mip_we) begin
-                            reg_mip <= csr_write_data;
+                            reg_mip <= csr_wdata;
                         end
                         else begin
                         end
                     end
                     `MTVAL: begin
                         if (!mtval_we) begin
-                            reg_mtval <= csr_write_data;
+                            reg_mtval <= csr_wdata;
                         end
                         else begin
                         end

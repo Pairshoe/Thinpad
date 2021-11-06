@@ -20,6 +20,7 @@ module pipeline(
     input wire[4:0]   ins_reg_s,
     input wire[4:0]   ins_reg_t,
     input wire[4:0]   ins_reg_d,
+    input wire[11:0]  csr,
     input wire        ins_a_select,
     input wire        ins_b_select,
     input wire        ins_pc_select,
@@ -29,6 +30,37 @@ module pipeline(
     input wire        ins_mem_wr,
     input wire[1:0]   ins_mem_to_reg,
     input wire        ins_reg_wr,
+    input wire        ins_csr_reg_wr,
+    input wire[3:0]   decoder_exception,
+
+    // interface to csr_regfile
+    input wire[31:0]  mtvec,
+    input wire[31:0]  mscratch,
+    input wire[31:0]  mepc,
+    input wire[31:0]  mcause,
+    input wire[31:0]  mstatus,
+    input wire[31:0]  mie,
+    input wire[31:0]  mip,
+    input wire[31:0]  mtval,
+    output reg        mtvec_we,
+    output reg        mscratch_we,
+    output reg        mepc_we,
+    output reg        mcause_we,
+    output reg        mstatus_we,
+    output reg        mie_we,
+    output reg        mip_we,
+    output reg        mtval_we,
+    output reg[31:0]  mtvec_wdata,
+    output reg[31:0]  mscratch_wdata,
+    output reg[31:0]  mepc_wdata,
+    output reg[31:0]  mcause_wdata,
+    output reg[31:0]  mstatus_wdata,
+    output reg[31:0]  mie_wdata,
+    output reg[31:0]  mip_wdata,
+    output reg[31:0]  mtval_wdata,
+    output reg        csr_we,
+    output reg[11:0]  csr_waddr,
+    output reg[31:0]  csr_wdata,
 
     // interface to regfile
     output wire[4:0]  regfile_raddr1,
@@ -62,6 +94,7 @@ module pipeline(
     output reg[31:0]  reg_id_exe_data_a,
     output reg[31:0]  reg_id_exe_data_b,
     output reg[4:0]   reg_id_exe_reg_d,
+    output reg[11:0]  reg_id_exe_csr,
     output reg        reg_id_exe_a_select,
     output reg        reg_id_exe_b_select,
     output reg        reg_id_exe_pc_select,
@@ -71,6 +104,7 @@ module pipeline(
     output reg        reg_id_exe_mem_wr,
     output reg[1:0]   reg_id_exe_mem_to_reg,
     output reg        reg_id_exe_reg_wr,
+    output reg        reg_id_exe_csr_reg_wr,
     output reg        reg_id_exe_abort,
 
     output reg[31:0]  reg_exe_mem_pc_now,
@@ -78,16 +112,21 @@ module pipeline(
     output reg[31:0]  reg_exe_mem_data_b,
     output reg        reg_exe_mem_pc_select,
     output reg[4:0]   reg_exe_mem_reg_d,
+    output reg[11:0]  reg_exe_mem_csr,
     output reg[4:0]   reg_exe_mem_op,
     output reg        reg_exe_mem_mem_wr,
     output reg[1:0]   reg_exe_mem_mem_to_reg,
     output reg        reg_exe_mem_reg_wr,
+    output reg        reg_exe_mem_csr_reg_wr,
     output reg        reg_exe_mem_abort,
 
     output reg[31:0]  reg_mem_wb_data,
+    output reg[31:0]  reg_mem_csr_wb_data,
     output reg[4:0]   reg_mem_wb_reg_d,
+    output reg[11:0]  reg_mem_wb_csr,
     output reg[4:0]   reg_mem_wb_op,
     output reg        reg_mem_wb_reg_wr,
+    output reg        reg_mem_wb_csr_reg_wr,
     output reg        reg_mem_wb_abort,
 
     output reg[3:0]   stall_if,
@@ -156,20 +195,20 @@ module pipeline(
             id_dat_a = regfile_rdata1;
         end
         else if (forwarding_select_a == 1) begin
-            id_dat_a = reg_id_exe_mem_to_reg == 2'b01 ? alu_data_r : reg_id_exe_pc_now + 4;
+            id_dat_a = reg_id_exe_mem_to_reg == 2'b01 ? alu_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_id_exe_pc_now + 4 : reg_id_exe_data_b);
         end
         else begin
-            id_dat_a = reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4;
+            id_dat_a = reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_exe_mem_pc_now + 4 : reg_exe_mem_data_b);
         end
 
         if (forwarding_select_b == 0) begin
             id_dat_b = regfile_rdata2;
         end
         else if (forwarding_select_b == 1) begin
-            id_dat_b = reg_id_exe_mem_to_reg == 2'b01 ? alu_data_r : reg_id_exe_pc_now + 4;
+            id_dat_b = reg_id_exe_mem_to_reg == 2'b01 ? alu_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_id_exe_pc_now + 4 : reg_id_exe_data_b);
         end
         else begin
-            id_dat_b = reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4;
+            id_dat_b = reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_exe_mem_pc_now + 4 : reg_exe_mem_data_b);
         end
     end
 
@@ -308,10 +347,14 @@ module pipeline(
             // stage id
             if (stall_id == 0) begin
                 if (time_counter == 6) begin
+                    if (decoder_exception == `ILLEGAL_INSTR_EXC) begin
+                        
+                    end
                     reg_id_exe_pc_now <= reg_if_id_pc_now;
                     reg_id_exe_data_a <= id_dat_a;
                     reg_id_exe_data_b <= id_dat_b;
                     reg_id_exe_reg_d <= ins_reg_d;
+                    reg_id_exe_csr <= csr;
                     reg_id_exe_a_select <= ins_a_select;
                     reg_id_exe_b_select <= ins_b_select;
                     reg_id_exe_pc_select <= ins_pc_select;
@@ -320,7 +363,8 @@ module pipeline(
                     reg_id_exe_imm <= ins_imm;
                     reg_id_exe_mem_wr <= ins_mem_wr;
                     reg_id_exe_mem_to_reg <= ins_mem_to_reg;
-                    reg_id_exe_reg_wr <=ins_reg_wr;
+                    reg_id_exe_reg_wr <= ins_reg_wr;
+                    reg_id_exe_csr_reg_wr <= ins_csr_reg_wr;
                     reg_id_exe_abort <= reg_if_id_abort;
                 end
                 else begin
@@ -342,11 +386,13 @@ module pipeline(
                     reg_exe_mem_data_r <= alu_data_r;
                     reg_exe_mem_data_b <= reg_id_exe_data_b;
                     reg_exe_mem_reg_d <= reg_id_exe_reg_d;
+                    reg_exe_mem_csr <= reg_id_exe_csr;
                     reg_exe_mem_op <= reg_id_exe_op;
                     reg_exe_mem_pc_select <= reg_id_exe_pc_select;
                     reg_exe_mem_mem_wr <= reg_id_exe_mem_wr;
                     reg_exe_mem_mem_to_reg <= reg_id_exe_mem_to_reg;
                     reg_exe_mem_reg_wr <= reg_id_exe_reg_wr;
+                    reg_exe_mem_csr_reg_wr <= reg_id_exe_csr_reg_wr;
                     reg_exe_mem_abort <= reg_id_exe_abort;
                 end
                 else begin
@@ -389,10 +435,13 @@ module pipeline(
                 end
 
                 if (time_counter == 6) begin
-                    reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4);
+                    reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_exe_mem_pc_now + 4 : reg_exe_mem_data_b));
+                    reg_mem_csr_wb_data <= reg_exe_mem_data_r;
                     reg_mem_wb_reg_d <= reg_exe_mem_reg_d;
+                    reg_mem_wb_csr <= reg_exe_mem_csr;
                     reg_mem_wb_op <= reg_exe_mem_op;
                     reg_mem_wb_reg_wr <= reg_exe_mem_reg_wr;
+                    reg_mem_wb_csr_reg_wr <= reg_exe_mem_csr_reg_wr;
                     reg_mem_wb_abort <= reg_exe_mem_abort;
                 end
                 else begin
@@ -419,9 +468,17 @@ module pipeline(
                             end
                             else begin
                             end
+                            if (reg_mem_wb_csr_reg_wr) begin
+                                csr_we <= 1;
+                                csr_waddr <= reg_mem_wb_csr;
+                                csr_wdata <= reg_mem_csr_wb_data;
+                            end
+                            else begin
+                            end
                         end
                         2: begin
                             regfile_we <= 0;
+                            csr_we <= 0;
                         end
                         default: begin
                         end

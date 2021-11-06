@@ -205,17 +205,17 @@ module thinpad_top(
     wire                mie_we;
     wire                mip_we;
     wire                mtval_we;
-    wire[31:0]          mtvec_write_data;
-    wire[31:0]          mscratch_write_data;
-    wire[31:0]          mepc_write_data;
-    wire[31:0]          mcause_write_data;
-    wire[31:0]          mstatus_write_data;
-    wire[31:0]          mie_write_data;
-    wire[31:0]          mip_write_data;
-    wire[31:0]          mtval_write_data;
+    wire[31:0]          mtvec_wdata;
+    wire[31:0]          mscratch_wdata;
+    wire[31:0]          mepc_wdata;
+    wire[31:0]          mcause_wdata;
+    wire[31:0]          mstatus_wdata;
+    wire[31:0]          mie_wdata;
+    wire[31:0]          mip_wdata;
+    wire[31:0]          mtval_wdata;
     wire                csr_we;
-    wire[11:0]          csr_write_addr;
-    wire[31:0]          csr_write_data;
+    wire[11:0]          csr_waddr;
+    wire[31:0]          csr_wdata;
 
     // interface to regfile
     wire[4:0]           reg_waddr;
@@ -295,6 +295,8 @@ module thinpad_top(
     csr_regfile _csr_regfile(
         .clk                (clk_50M),
         .rst                (reset_btn),
+
+        // for decoder
         .csr                (csr),
         .csr_data           (csr_data),
 
@@ -317,19 +319,19 @@ module thinpad_top(
         .mie_we             (mie_we),
         .mip_we             (mip_we),
         .mtval_we           (mtval_we),
-        .mtvec_write_data   (mtvec_write_data),
-        .mscratch_write_data(mscratch_write_data),
-        .mepc_write_data    (mepc_write_data),
-        .mcause_write_data  (mcause_write_data),
-        .mstatus_write_data (mstatus_write_data),
-        .mie_write_data     (mie_write_data),
-        .mip_write_data     (mip_write_data),
-        .mtval_write_data   (mtval_write_data),
+        .mtvec_wdata   (mtvec_wdata),
+        .mscratch_wdata(mscratch_wdata),
+        .mepc_wdata    (mepc_wdata),
+        .mcause_wdata  (mcause_wdata),
+        .mstatus_wdata (mstatus_wdata),
+        .mie_wdata     (mie_wdata),
+        .mip_wdata     (mip_wdata),
+        .mtval_wdata   (mtval_wdata),
 
         // for writeback
         .csr_we             (csr_we),
-        .csr_write_addr     (csr_write_addr),
-        .csr_write_data     (csr_write_data)
+        .csr_waddr     (csr_waddr),
+        .csr_wdata     (csr_wdata)
     );
 
     regfile _regfile(
@@ -368,19 +370,51 @@ module thinpad_top(
         .mem_data_out   (mem_data_out),
 
         // interface to decoder
-        .instr          (instr),
-        .ins_reg_s      (reg_a),
-        .ins_reg_t      (reg_b),
-        .ins_reg_d      (reg_d),
-        .ins_a_select   (a_select),
-        .ins_b_select   (b_select),
-        .ins_pc_select  (pc_select),
-        .ins_op         (ins_op),
-        .ins_alu_op     (ins_alu_op),
-        .ins_imm        (imm),
-        .ins_mem_wr     (mem_wr),
-        .ins_mem_to_reg (mem_to_reg),
-        .ins_reg_wr     (reg_wr),
+        .instr              (instr),
+        .ins_reg_s          (reg_a),
+        .ins_reg_t          (reg_b),
+        .ins_reg_d          (reg_d),
+        .csr                (csr),
+        .ins_a_select       (a_select),
+        .ins_b_select       (b_select),
+        .ins_pc_select      (pc_select),
+        .ins_op             (ins_op),
+        .ins_alu_op         (ins_alu_op),
+        .ins_imm            (imm),
+        .ins_mem_wr         (mem_wr),
+        .ins_mem_to_reg     (mem_to_reg),
+        .ins_reg_wr         (reg_wr),
+        .ins_csr_reg_wr     (csr_reg_wr),
+        .decoder_exception  (exception),
+
+        // interface to csr_regfile
+        .mtvec          (mtvec),
+        .mscratch       (mscratch),
+        .mepc           (mepc),
+        .mcause         (mcause),
+        .mstatus        (mstatus),
+        .mie            (mie),
+        .mip            (mip),
+        .mtval          (mtval),
+        .mtvec_we       (mtvec_we),
+        .mscratch_we    (mscratch_we),
+        .mepc_we        (mepc_we),
+        .mcause_we      (mcause_we),
+        .mstatus_we     (mstatus_we),
+        .mie_we         (mie_we),
+        .mip_we         (mip_we),
+        .mtval_we       (mtval_we),
+        .mtvec_wdata    (mtvec_wdata),
+        .mscratch_wdata (mscratch_wdata),
+        .mepc_wdata     (mepc_wdata),
+        .mcause_wdata   (mcause_wdata),
+        .mstatus_wdata  (mstatus_wdata),
+        .mie_wdata      (mie_wdata),
+        .mip_wdata      (mip_wdata),
+        .mtval_wdata    (mtval_wdata),
+        .csr_we         (csr_we),
+        .csr_waddr      (csr_waddr),
+        .csr_wdata      (csr_wdata),
 
         // interface to regfile
         .regfile_raddr1 (reg_raddr1),
