@@ -40,6 +40,10 @@ module alu(
                 result = a & ~b;
             end
 
+            `NANDN: begin
+                result = ~a & b;
+            end
+
             `OR: begin
                 result = a | b;
             end
@@ -54,6 +58,10 @@ module alu(
 
             `MINU: begin
                 result = a < b ? a : b;
+            end
+
+            `SLTU: begin
+                result = a < b ? 1 : 0;
             end
 
             `NOT: begin
