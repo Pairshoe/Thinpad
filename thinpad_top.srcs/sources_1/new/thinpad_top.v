@@ -80,6 +80,8 @@ module thinpad_top(
     output wire[3:0]    stall_wb,
     output wire[31:0]   pc,
     output wire[2:0]    time_counter,
+    output wire[1:0]    forwarding_select_a,
+    output wire[1:0]    forwarding_select_b,
 
     output wire         mem_oe,
     output wire         mem_we,
@@ -162,6 +164,7 @@ module thinpad_top(
     wire[3:0]           stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     wire[31:0]          pc;
     wire[2:0]           time_counter;
+    wire[1:0]           forwarding_select_a, forwarding_select_b;
 
     // interface to sram and uart
     wire                mem_oe, mem_we, mem_be;
@@ -369,7 +372,9 @@ module thinpad_top(
         .stall_mem              (stall_mem),
         .stall_wb               (stall_wb),
         .pc                     (pc),
-        .time_counter           (time_counter)
+        .time_counter           (time_counter),
+        .forwarding_select_a    (forwarding_select_a),
+        .forwarding_select_a    (forwarding_select_b)
     );
 
 endmodule

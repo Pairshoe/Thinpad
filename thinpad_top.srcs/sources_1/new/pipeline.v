@@ -98,9 +98,9 @@ module pipeline(
     output reg[3:0]   stall_mem,
     output reg[3:0]   stall_wb,
     output reg[31:0]  pc,
-    output reg[2:0]   time_counter
-    /*output reg[1:0]   forwarding_select_a,
-    output reg[1:0]   forwarding_select_b*/
+    output reg[2:0]   time_counter,
+    output reg[1:0]   forwarding_select_a,
+    output reg[1:0]   forwarding_select_b
 );
 
     /* release mode signals
@@ -142,8 +142,8 @@ module pipeline(
 
     reg[3:0]          stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     reg[31:0]         pc;
-    reg[2:0]          time_counter;*/
-    reg[1:0]          forwarding_select_a, forwarding_select_b;
+    reg[2:0]          time_counter;
+    reg[1:0]          forwarding_select_a, forwarding_select_b;*/
 
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
@@ -189,6 +189,7 @@ module pipeline(
             time_counter <= 0;
             // reset abort signal
             reg_if_id_abort <= 1;  reg_id_exe_abort <= 1;  reg_exe_mem_abort <= 1;  reg_mem_wb_abort <= 1;
+            // reset forwarding select
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
         end
         else begin
@@ -218,55 +219,6 @@ module pipeline(
                     end
                 end
                 else begin
-                    /*if (stall_exe == 0 && reg_id_exe_abort == 0) begin
-                        if ((reg_id_exe_reg_s == reg_exe_mem_reg_d || reg_id_exe_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                            if (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW) begin
-                                stall_if <= 1;
-                                stall_id <= 1;
-                                stall_exe <= 1;
-                            end
-                            else if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
-                                reg_id_exe_data_a <= (reg_id_exe_reg_s == reg_exe_mem_reg_d) ? reg_exe_mem_pc_now + 4 : reg_id_exe_data_a;
-                                reg_id_exe_data_b <= (reg_id_exe_reg_t == reg_exe_mem_reg_d) ? reg_exe_mem_pc_now + 4 : reg_id_exe_data_b;
-                            end
-                            else begin
-                                reg_id_exe_data_a <= (reg_id_exe_reg_s == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_a;
-                                reg_id_exe_data_b <= (reg_id_exe_reg_t == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_b;
-                            end
-                            if (reg_id_exe_op == `OP_BEQ && reg_exe_mem_op != `OP_LB && reg_exe_mem_op != `OP_LW) begin
-                                reg_id_exe_pc_select <= (((reg_id_exe_reg_s == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_a) == ((reg_id_exe_reg_t == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_b));
-                            end
-                            else if (reg_id_exe_op == `OP_BNE && reg_exe_mem_op != `OP_LB && reg_exe_mem_op != `OP_LW) begin
-                                reg_id_exe_pc_select <= (((reg_id_exe_reg_s == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_a) != ((reg_id_exe_reg_t == reg_exe_mem_reg_d) ? reg_exe_mem_data_r : reg_id_exe_data_b));
-                            end
-                            else begin
-                            end
-                        end
-                        else if ((reg_id_exe_reg_s == reg_mem_wb_reg_d || reg_id_exe_reg_t == reg_mem_wb_reg_d) && reg_mem_wb_abort == 0 && reg_mem_wb_reg_d != 0 && reg_mem_wb_reg_wr == 1) begin
-                            reg_id_exe_data_a <= (reg_id_exe_reg_s == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_a;
-                            reg_id_exe_data_b <= (reg_id_exe_reg_t == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_b;
-                            if (reg_id_exe_op == `OP_BEQ) begin
-                                reg_id_exe_pc_select <= (((reg_id_exe_reg_s == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_a) == ((reg_id_exe_reg_t == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_b));
-                            end
-                            else if (reg_id_exe_op == `OP_BNE) begin
-                                reg_id_exe_pc_select <= (((reg_id_exe_reg_s == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_a) != ((reg_id_exe_reg_t == reg_mem_wb_reg_d) ? reg_mem_wb_data : reg_id_exe_data_b));
-                            end
-                            else begin
-                            end
-                        end
-                        else begin
-                        end
-                    end
-                    if (!(stall_exe == 0 && reg_id_exe_abort == 0 && (reg_id_exe_reg_s == reg_exe_mem_reg_d || reg_id_exe_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0
-                        && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW))) begin
-                        if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                            stall_if <= 1;
-                        end
-                        else begin
-                        end
-                    end
-                    else begin
-                    end*/
                     if (stall_id == 0 && reg_if_id_abort == 0) begin
                         if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1 && (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW)) begin
                             stall_if <= 2;
@@ -296,67 +248,10 @@ module pipeline(
                             else begin
                                 forwarding_select_b <= 0;
                             end
-                            //forwarding_select_a <= (ins_reg_s == reg_id_exe_reg_d) ? 1 : 0;
-                            //forwarding_select_b <= (ins_reg_t == reg_id_exe_reg_d) ? 1 : 0;
                             if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
                                 stall_if <= 1;
                             end
                             else begin
-                            end
-                            /*stall_if <= 2;
-                            stall_id <= 2;*/
-                        end
-                        /*else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                            forwarding_select_a <= (ins_reg_s == reg_exe_mem_reg_d) ? 2 : 0;
-                            forwarding_select_b <= (ins_reg_t == reg_exe_mem_reg_d) ? 2 : 0;
-                            if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                stall_if <= 1;
-                            end
-                            else begin
-                            end
-                            //stall_if <= 1;
-                            //stall_id <= 1;
-                        end*/
-                        /*else if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                            stall_if <= 1;
-                        end*/
-                        /*else begin
-                            if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
-                                forwarding_select_a <= (ins_reg_s == reg_id_exe_reg_d) ? 1 : 0;
-                                forwarding_select_b <= (ins_reg_t == reg_id_exe_reg_d) ? 1 : 0;
-                            end
-                            else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                                forwarding_select_a <= (ins_reg_s == reg_exe_mem_reg_d) ? 2 : 0;
-                                forwarding_select_b <= (ins_reg_t == reg_exe_mem_reg_d) ? 2 : 0;
-                            end
-                            else begin
-                            end
-                            if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                stall_if <= 1;
-                            end
-                            else begin
-                            end
-                        end*/
-                        /*else begin
-                        end*/
-                    end
-                    else if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                        stall_if <= 1;
-                    end
-                    else begin
-                    end
-                    /*if (stall_id == 0 && reg_if_id_abort == 0) begin
-                        if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
-                            stall_if <= 2;
-                            stall_id <= 2;
-                        end
-                        else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                            stall_if <= 1;
-                            stall_id <= 1;
-                        end
-                        else begin
-                            if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                stall_if <= 1;
                             end
                         end
                     end
@@ -364,7 +259,7 @@ module pipeline(
                         stall_if <= 1;
                     end
                     else begin
-                    end*/
+                    end
                 end
             end
             else if (time_counter == 6) begin
@@ -412,9 +307,6 @@ module pipeline(
                     reg_id_exe_pc_now <= reg_if_id_pc_now;
                     reg_id_exe_data_a <= id_dat_a;
                     reg_id_exe_data_b <= id_dat_b;
-                    //reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : reg_exe_mem_pc_now + 4);
-                    /*reg_id_exe_data_a <= regfile_rdata1;
-                    reg_id_exe_data_b <= regfile_rdata2;*/
                     reg_id_exe_reg_s <= ins_reg_s;
                     reg_id_exe_reg_t <= ins_reg_t;
                     reg_id_exe_reg_d <= ins_reg_d;
