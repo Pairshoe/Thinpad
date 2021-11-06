@@ -80,6 +80,8 @@ module thinpad_top(
     output wire[3:0]    stall_wb,
     output wire[31:0]   pc,
     output wire[2:0]    time_counter,
+    output wire[1:0]    forwarding_select_a,
+    output wire[1:0]    forwarding_select_b,
 
     output wire         mem_oe,
     output wire         mem_we,
@@ -102,6 +104,8 @@ module thinpad_top(
     output wire         mem_wr,
     output wire         reg_wr,
 
+    output wire[31:0]   id_dat_a,
+    output wire[31:0]   id_dat_b,
     output wire         br_eq,
     output wire         br_lt,
     output wire         br_un,
@@ -160,6 +164,7 @@ module thinpad_top(
     wire[3:0]           stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     wire[31:0]          pc;
     wire[2:0]           time_counter;
+    wire[1:0]           forwarding_select_a, forwarding_select_b;
 
     // interface to sram and uart
     wire                mem_oe, mem_we, mem_be;
@@ -177,6 +182,7 @@ module thinpad_top(
     wire                a_select, b_select, pc_select, mem_wr, reg_wr;
 
     // interface to br_comparator
+    wire[31:0]          id_dat_a, id_dat_b;
     wire                br_eq, br_lt, br_un;
 
     // interface to regfile
@@ -243,8 +249,8 @@ module thinpad_top(
     );
 
     br_comparator _br_comparator(
-        .rdata1         (reg_rdata1),
-        .rdata2         (reg_rdata2),
+        .rdata1         (id_dat_a),
+        .rdata2         (id_dat_b),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
         .br_un          (br_un)
@@ -310,6 +316,8 @@ module thinpad_top(
         .regfile_wdata  (reg_wdata),
         
         // interface to branch comp
+        .id_dat_a       (id_dat_a),
+        .id_dat_b       (id_dat_b),
         .br_un          (br_un),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
@@ -364,7 +372,9 @@ module thinpad_top(
         .stall_mem              (stall_mem),
         .stall_wb               (stall_wb),
         .pc                     (pc),
-        .time_counter           (time_counter)
+        .time_counter           (time_counter),
+        .forwarding_select_a    (forwarding_select_a),
+        .forwarding_select_b    (forwarding_select_b)
     );
 
 endmodule
