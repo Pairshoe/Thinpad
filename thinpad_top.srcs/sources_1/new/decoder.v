@@ -163,7 +163,7 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b1100011: begin // BEQ, BNE
+            7'b1100011: begin // BEQ, BNE, BLT
                 alu_op_reg = `ADD;
                 imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
                 a_select_reg = 1'b1;
@@ -171,8 +171,6 @@ module decoder(
                     3'b000: begin // BEQ
                         ext_op_reg = `OP_BEQ;
                         if(br_eq == 1'b1) begin
-                            /*imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
-                            a_select_reg = 1'b1;*/
                             pc_select_reg = 1'b1;
                         end
                         else begin
@@ -181,8 +179,6 @@ module decoder(
                     3'b001: begin // BNE
                         ext_op_reg = `OP_BNE;
                         if(br_eq == 1'b0) begin
-                            /*imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
-                            a_select_reg = 1'b1;*/
                             pc_select_reg = 1'b1;
                         end
                         else begin
@@ -191,8 +187,6 @@ module decoder(
                     3'b100: begin // BLT
                         ext_op_reg = `OP_BLT;
                         if(br_lt == 1'b1) begin
-                            /*imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
-                            a_select_reg = 1'b1;*/
                             pc_select_reg = 1'b1;
                         end
                         else begin

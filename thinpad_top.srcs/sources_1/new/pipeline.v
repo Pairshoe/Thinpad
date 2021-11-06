@@ -61,8 +61,6 @@ module pipeline(
     output reg[31:0]  reg_id_exe_pc_now,
     output reg[31:0]  reg_id_exe_data_a,
     output reg[31:0]  reg_id_exe_data_b,
-    output reg[4:0]   reg_id_exe_reg_s,
-    output reg[4:0]   reg_id_exe_reg_t,
     output reg[4:0]   reg_id_exe_reg_d,
     output reg        reg_id_exe_a_select,
     output reg        reg_id_exe_b_select,
@@ -203,6 +201,7 @@ module pipeline(
             stall_wb <= time_counter == 6 ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
 
             if (time_counter == 0) begin
+                // control hazard
                 if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
                     if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
                         pc <= reg_exe_mem_data_r & 32'hfffffffe;
@@ -220,6 +219,7 @@ module pipeline(
                 end
                 else begin
                     if (stall_id == 0 && reg_if_id_abort == 0) begin
+                        // data hazard ( LB & LW )
                         if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1 && (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW)) begin
                             stall_if <= 2;
                             stall_id <= 2;
@@ -228,6 +228,7 @@ module pipeline(
                             stall_if <= 1;
                             stall_id <= 1;
                         end
+                        // data hazard ( forwarding )
                         else begin
                             if (ins_reg_s == reg_id_exe_reg_d && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
                                 forwarding_select_a <= 1;
@@ -248,6 +249,7 @@ module pipeline(
                             else begin
                                 forwarding_select_b <= 0;
                             end
+                            // structural hazard
                             if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
                                 stall_if <= 1;
                             end
@@ -255,6 +257,7 @@ module pipeline(
                             end
                         end
                     end
+                    // structural hazard
                     else if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
                         stall_if <= 1;
                     end
@@ -262,6 +265,7 @@ module pipeline(
                     end
                 end
             end
+            // reset forwarding signal
             else if (time_counter == 6) begin
                 forwarding_select_a <= 0;
                 forwarding_select_b <= 0;
@@ -307,8 +311,6 @@ module pipeline(
                     reg_id_exe_pc_now <= reg_if_id_pc_now;
                     reg_id_exe_data_a <= id_dat_a;
                     reg_id_exe_data_b <= id_dat_b;
-                    reg_id_exe_reg_s <= ins_reg_s;
-                    reg_id_exe_reg_t <= ins_reg_t;
                     reg_id_exe_reg_d <= ins_reg_d;
                     reg_id_exe_a_select <= ins_a_select;
                     reg_id_exe_b_select <= ins_b_select;
