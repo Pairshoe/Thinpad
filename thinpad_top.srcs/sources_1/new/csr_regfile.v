@@ -62,7 +62,7 @@ module csr_regfile(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            reg_mtvec <= 32'h00000000;
+            //reg_mtvec <= 32'h00000000;
             reg_mscratch <= 32'h00000000;
             reg_mepc <= 32'h00000000;
             reg_mcause <= 32'h00000000;

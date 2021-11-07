@@ -217,6 +217,16 @@ module thinpad_top(
     wire[11:0]          csr_waddr;
     wire[31:0]          csr_wdata;
 
+    // interface to mmio_regfile
+    wire[31:0]          mtime_lo;
+    wire[31:0]          mtime_hi;
+    wire[31:0]          mtimecmp_lo;
+    wire[31:0]          mtimecmp_hi;
+    wire[1:0]           mtime_we;
+    wire[1:0]           mtimecmp_we;
+    wire[31:0]          mtime_wdata;
+    wire[31:0]          mtimecmp_wdata;
+
     // interface to regfile
     wire[4:0]           reg_waddr;
     wire[31:0]          reg_wdata;
@@ -319,19 +329,32 @@ module thinpad_top(
         .mie_we             (mie_we),
         .mip_we             (mip_we),
         .mtval_we           (mtval_we),
-        .mtvec_wdata   (mtvec_wdata),
-        .mscratch_wdata(mscratch_wdata),
-        .mepc_wdata    (mepc_wdata),
-        .mcause_wdata  (mcause_wdata),
-        .mstatus_wdata (mstatus_wdata),
-        .mie_wdata     (mie_wdata),
-        .mip_wdata     (mip_wdata),
-        .mtval_wdata   (mtval_wdata),
+        .mtvec_wdata        (mtvec_wdata),
+        .mscratch_wdata     (mscratch_wdata),
+        .mepc_wdata         (mepc_wdata),
+        .mcause_wdata       (mcause_wdata),
+        .mstatus_wdata      (mstatus_wdata),
+        .mie_wdata          (mie_wdata),
+        .mip_wdata          (mip_wdata),
+        .mtval_wdata        (mtval_wdata),
 
         // for writeback
         .csr_we             (csr_we),
-        .csr_waddr     (csr_waddr),
-        .csr_wdata     (csr_wdata)
+        .csr_waddr          (csr_waddr),
+        .csr_wdata          (csr_wdata)
+    );
+
+    mmio_regfile _mmio_regfile(
+        .clk                (clk_50M),
+        .rst                (reset_btn),
+        .mtime_lo           (mtime_lo),
+        .mtime_hi           (mtime_hi), 
+        .mtimecmp_lo        (mtimecmp_lo),
+        .mtimecmp_hi        (mtimecmp_hi),
+        .mtime_we           (mtime_we),
+        .mtimecmp_we        (mtimecmp_we),
+        .mtime_wdata        (mtime_wdata),
+        .mtimecmp_wdata     (mtimecmp_wdata)
     );
 
     regfile _regfile(
@@ -415,6 +438,16 @@ module thinpad_top(
         .csr_we         (csr_we),
         .csr_waddr      (csr_waddr),
         .csr_wdata      (csr_wdata),
+
+        // interface to mmio_regfile
+        .mtime_lo           (mtime_lo),
+        .mtime_hi           (mtime_hi), 
+        .mtimecmp_lo        (mtimecmp_lo),
+        .mtimecmp_hi        (mtimecmp_hi),
+        .mtime_we           (mtime_we),
+        .mtimecmp_we        (mtimecmp_we),
+        .mtime_wdata        (mtime_wdata),
+        .mtimecmp_wdata     (mtimecmp_wdata),
 
         // interface to regfile
         .regfile_raddr1 (reg_raddr1),
