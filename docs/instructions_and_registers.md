@@ -1,4 +1,4 @@
-#### Basic commands
+#### Basic instructions
 
 ```assembly
 ADD   0000000SSSSSsssss000ddddd0110011

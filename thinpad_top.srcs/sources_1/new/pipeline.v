@@ -116,6 +116,12 @@ module pipeline(
     output reg        reg_id_exe_reg_wr,
     output reg        reg_id_exe_csr_reg_wr,
     output reg        reg_id_exe_abort,
+    output reg[31:0]  reg_id_exe_mepc_data,
+    output reg        reg_id_exe_mepc_wr,
+    output reg[31:0]  reg_id_exe_mcause_data,
+    output reg        reg_id_exe_mcause_wr,
+    output reg[31:0]  reg_id_exe_mstatus_data,
+    output reg        reg_id_exe_mstatus_wr,
 
     output reg[31:0]  reg_exe_mem_pc_now,
     output reg[31:0]  reg_exe_mem_data_r,
@@ -129,6 +135,12 @@ module pipeline(
     output reg        reg_exe_mem_reg_wr,
     output reg        reg_exe_mem_csr_reg_wr,
     output reg        reg_exe_mem_abort,
+    output reg[31:0]  reg_exe_mem_mepc_data,
+    output reg        reg_exe_mem_mepc_wr,
+    output reg[31:0]  reg_exe_mem_mcause_data,
+    output reg        reg_exe_mem_mcause_wr,
+    output reg[31:0]  reg_exe_mem_mstatus_data,
+    output reg        reg_exe_mem_mstatus_wr,
 
     output reg[31:0]  reg_mem_wb_data,
     output reg[31:0]  reg_mem_wb_csr_data,
@@ -142,6 +154,12 @@ module pipeline(
     output reg[1:0]   reg_mem_wb_mtime_reg_wr,
     output reg[1:0]   reg_mem_wb_mtimecmp_reg_wr,
     output reg        reg_mem_wb_abort,
+    output reg[31:0]  reg_mem_wb_mepc_data,
+    output reg        reg_mem_wb_mepc_wr,
+    output reg[31:0]  reg_mem_wb_mcause_data,
+    output reg        reg_mem_wb_mcause_wr,
+    output reg[31:0]  reg_mem_wb_mstatus_data,
+    output reg        reg_mem_wb_mstatus_wr,
 
     output reg[3:0]   stall_if,
     output reg[3:0]   stall_id,
@@ -367,72 +385,87 @@ module pipeline(
                 case (time_counter)
                     1: begin
                         // priority from high to low
-                        if (ins_op == `OP_MRET && mstatus[12:11] != 2'b11) begin // permission denied
+                        if ((mtime_hi > mtimecmp_hi) || (mtime_hi == mtimecmp_hi && mtime_lo > mtimecmp_lo)) begin //timer interrupt
                             // suspend the pipeline
-                            stall_if <= 2;
-                            stall_id <= 2;
+                            stall_if <= 3;
+                            stall_id <= 3;
                             // set pc and csr regs 
                             pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { mcause[29:0], 2'b00 };
-                            mepc_wdata <= reg_if_id_pc_now + 4;
-                            mepc_we <= 1'b1;
-                            mcause_wdata <= { 1'b0, { 27{ 1'b0 } }, `INSTR_ACCESS_FAULT_EXC };
-                            mcause_we <= 1'b1;
-                            mstatus_wdata <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            mstatus_we <= 1'b1;
+                            reg_id_exe_mepc_data <= reg_if_id_pc_now + 4;
+                            reg_id_exe_mepc_wr <= 1'b1;
+                            reg_id_exe_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
+                            reg_id_exe_mcause_wr <=  1'b1;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
                         end
-                        else if (decoder_exception == `ILLEGAL_INSTR_EXC) begin 
+                        else if (ins_op == `OP_MRET && mstatus[12:11] != 2'b11) begin // permission denied
                             // suspend the pipeline
-                            stall_if <= 2;
-                            stall_id <= 2;
+                            stall_if <= 3;
+                            stall_id <= 3;
                             // set pc and csr regs 
                             pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { mcause[29:0], 2'b00 };
-                            mepc_wdata <= reg_if_id_pc_now + 4;
-                            mepc_we <= 1'b1;
-                            mcause_wdata <= { 1'b0, { 27{ 1'b0 } }, `ILLEGAL_INSTR_EXC };
-                            mcause_we <= 1'b1;
-                            mstatus_wdata <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            mstatus_we <= 1'b1;
+                            reg_id_exe_mepc_data <= reg_if_id_pc_now + 4;
+                            reg_id_exe_mepc_wr <= 1'b1;
+                            reg_id_exe_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `INSTR_ACCESS_FAULT_EXC };
+                            reg_id_exe_mcause_wr <=  1'b1;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
                         end
-                        else if (ins_op == `OP_EBREAK) begin
+                        else if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
                             // suspend the pipeline
-                            stall_if <= 2;
-                            stall_id <= 2;
+                            stall_if <= 3;
+                            stall_id <= 3;
                             // set pc and csr regs 
                             pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { mcause[29:0], 2'b00 };
-                            mepc_wdata <= reg_if_id_pc_now + 4;
-                            mepc_we <= 1'b1;
-                            mcause_wdata <= { 1'b0, { 27{ 1'b0 } }, `BREAKPOINT_EXC };
-                            mcause_we <= 1'b1;
-                            mstatus_wdata <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            mstatus_we <= 1'b1;
+                            reg_id_exe_mepc_data <= reg_if_id_pc_now + 4;
+                            reg_id_exe_mepc_wr <= 1'b1;
+                            reg_id_exe_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `ILLEGAL_INSTR_EXC };
+                            reg_id_exe_mcause_wr <=  1'b1;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
                         end
-                        else if (ins_op == `OP_ECALL) begin
+                        else if (ins_op == `OP_EBREAK) begin // ebreak
                             // suspend the pipeline
-                            stall_if <= 2;
-                            stall_id <= 2;
+                            stall_if <= 3;
+                            stall_id <= 3;
                             // set pc and csr regs 
                             pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { mcause[29:0], 2'b00 };
-                            mepc_wdata <= reg_if_id_pc_now + 4;
-                            mepc_we <= 1'b1;
-                            mcause_wdata <= mstatus[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            mcause_we <= 1'b1;
-                            mstatus_wdata <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            mstatus_we <= 1'b1;
+                            reg_id_exe_mepc_data <= reg_if_id_pc_now + 4;
+                            reg_id_exe_mepc_wr <= 1'b1;
+                            reg_id_exe_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `BREAKPOINT_EXC };
+                            reg_id_exe_mcause_wr <=  1'b1;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
                         end
-                        else if (ins_op == `OP_MRET) begin
+                        else if (ins_op == `OP_ECALL) begin // ecall
                             // suspend the pipeline
-                            stall_if <= 2;
-                            stall_id <= 2;
+                            stall_if <= 3;
+                            stall_id <= 3;
+                            // set pc and csr regs 
+                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { mcause[29:0], 2'b00 };
+                            reg_id_exe_mepc_data <= reg_if_id_pc_now + 4;
+                            reg_id_exe_mepc_wr <= 1'b1;
+                            reg_id_exe_mcause_data <= mstatus[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
+                            reg_id_exe_mcause_wr <=  1'b1;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
+                        end
+                        else if (ins_op == `OP_MRET) begin // mret
+                            // suspend the pipeline
+                            stall_if <= 3;
+                            stall_id <= 3;
                             // set pc and csr regs 
                             pc <= mepc;
-                            mstatus_wdata <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } };
-                            mstatus_we <= 1'b1;
+                            reg_id_exe_mepc_wr <= 1'b0;
+                            reg_id_exe_mcause_wr <=  1'b0;
+                            reg_id_exe_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } };
+                            reg_id_exe_mstatus_wr <= 1'b1;
                         end
-                    end
-                    2: begin
-                        mepc_we <= 1'b0;
-                        mcause_we <= 1'b0;
-                        mstatus_we <= 1'b0;
+                        else begin // no exception/interrupt here
+                            reg_id_exe_mepc_wr <= 1'b0;
+                            reg_id_exe_mcause_wr <=  1'b0;
+                            reg_id_exe_mstatus_wr <= 1'b0;
+                        end
                     end
                     6: begin
                         reg_id_exe_pc_now <= reg_if_id_pc_now;
@@ -480,6 +513,12 @@ module pipeline(
                     reg_exe_mem_reg_wr <= reg_id_exe_reg_wr;
                     reg_exe_mem_csr_reg_wr <= reg_id_exe_csr_reg_wr;
                     reg_exe_mem_abort <= reg_id_exe_abort;
+                    reg_exe_mem_mepc_data <= reg_id_exe_mepc_data;
+                    reg_exe_mem_mepc_wr <= reg_id_exe_mepc_wr;
+                    reg_exe_mem_mcause_data <= reg_id_exe_mcause_data;
+                    reg_exe_mem_mcause_wr <= reg_id_exe_mcause_wr;
+                    reg_exe_mem_mstatus_data <= reg_id_exe_mstatus_data;
+                    reg_exe_mem_mstatus_wr <= reg_id_exe_mstatus_wr;
                 end
                 else begin
                 end
@@ -614,6 +653,12 @@ module pipeline(
                     reg_mem_wb_reg_wr <= reg_exe_mem_reg_wr;
                     reg_mem_wb_csr_reg_wr <= reg_exe_mem_csr_reg_wr;
                     reg_mem_wb_abort <= reg_exe_mem_abort;
+                    reg_mem_wb_mepc_data <= reg_exe_mem_mepc_data;
+                    reg_mem_wb_mepc_wr <= reg_exe_mem_mepc_wr;
+                    reg_mem_wb_mcause_data <= reg_exe_mem_mcause_data;
+                    reg_mem_wb_mcause_wr <= reg_exe_mem_mcause_wr;
+                    reg_mem_wb_mstatus_data <= reg_exe_mem_mstatus_data;
+                    reg_mem_wb_mstatus_wr <= reg_exe_mem_mstatus_wr;
                 end
                 else begin
                 end
@@ -669,7 +714,36 @@ module pipeline(
                         end
                     endcase
                 end
-                else begin
+                else begin // the instruction cause an exception or interrupt
+                    case(time_counter)
+                        1: begin
+                            if (reg_mem_wb_mepc_wr) begin
+                                mepc_we <= 1;
+                                mepc_wdata <= reg_mem_wb_mepc_data;
+                            end
+                            else begin
+                            end
+                            if (reg_mem_wb_mcause_wr) begin
+                                mcause_we <= 1;
+                                mcause_wdata <= reg_mem_wb_mcause_data;
+                            end
+                            else begin
+                            end
+                            if (reg_mem_wb_mstatus_wr) begin
+                                mstatus_we <= 1;
+                                mstatus_wdata <= reg_mem_wb_mstatus_data;
+                            end
+                            else begin
+                            end
+                        end
+                        2: begin
+                            mepc_we <= 0;
+                            mcause_we <= 0;
+                            mstatus_we <= 0;
+                        end
+                        default: begin
+                        end
+                    endcase
                 end
             end
             else begin
