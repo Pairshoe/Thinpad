@@ -43,7 +43,7 @@ module sram(
     reg                  data_z;
     wire                 use_sram, use_ext, use_uart, use_uart_state;
     wire[7:0]            uart_state_data;
-    reg[3:0]             state;
+    reg[3:0]             state, uart_write_state;
 
     assign               base_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
     assign               base_ram_addr = address[21:2];
@@ -59,11 +59,12 @@ module sram(
     assign               use_uart_state = (address == 32'h10000005);
     assign               use_sram = (32'h80000000 <= address && address < 32'h80800000);
     assign               use_ext = (32'h80400000 <= address);
-    assign               uart_state_data = (state == `STATE_IDLE) ? (((uart_tbre == 1 && uart_tsre == 1) << 5) | uart_dataready) : 8'b00000000;
+    assign               uart_state_data = (state == `STATE_IDLE) ? (((uart_write_state == `STATE_IDLE) << 5) | uart_dataready) : 8'b00000000;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= `STATE_IDLE;
+            uart_write_state <= `STATE_IDLE;
             data_z <= 1'b0;
             done <= 1'b0;
             base_ram_oe_n <= 1'b1;
@@ -135,16 +136,16 @@ module sram(
                     if (use_ext) begin
                         case({ be, address[1:0] })
                             3'b100: begin
-                                data_out <= { 24'h000000, ext_ram_data_wire[7:0] };
+                                data_out <= { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
                             end
                             3'b101: begin
-                                data_out <= { 24'h000000, ext_ram_data_wire[15:8] };
+                                data_out <= { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
                             end
                             3'b110: begin
-                                data_out <= { 24'h000000, ext_ram_data_wire[23:16] };
+                                data_out <= { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
                             end
                             3'b111: begin
-                                data_out <= { 24'h000000, ext_ram_data_wire[31:24] };
+                                data_out <= { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
                             end
                             default: begin
                                 data_out <= ext_ram_data_wire;
@@ -154,16 +155,16 @@ module sram(
                     else begin
                         case({ be, address[1:0] })
                             3'b100: begin
-                                data_out <= { 24'h000000, base_ram_data_wire[7:0] };
+                                data_out <= { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
                             end
                             3'b101: begin
-                                data_out <= { 24'h000000, base_ram_data_wire[15:8] };
+                                data_out <= { { 24{ base_ram_data_wire[15] } }, base_ram_data_wire[15:8] };
                             end
                             3'b110: begin
-                                data_out <= { 24'h000000, base_ram_data_wire[23:16] };
+                                data_out <= { { 24{ base_ram_data_wire[23] } }, base_ram_data_wire[23:16] };
                             end
                             3'b111: begin
-                                data_out <= { 24'h000000, base_ram_data_wire[31:24] };
+                                data_out <= { { 24{ base_ram_data_wire[31] } }, base_ram_data_wire[31:24] };
                             end
                             default: begin
                                 data_out <= base_ram_data_wire;
@@ -198,6 +199,35 @@ module sram(
                     state <= `STATE_IDLE;
                     data_z <= 1'b0;
                     done <= 1'b0;
+                end
+
+                default: begin
+                end
+            endcase
+
+            case(uart_write_state)
+                `STATE_IDLE: begin
+                    if (uart_tbre == 0) begin
+                        uart_write_state <= `STATE_UART_WRITE_0;
+                    end
+                    else begin
+                    end
+                end
+
+                `STATE_UART_WRITE_0: begin
+                    if (uart_tsre == 0) begin
+                        uart_write_state <= `STATE_UART_WRITE_1;
+                    end
+                    else begin
+                    end
+                end
+
+                `STATE_UART_WRITE_1: begin
+                    if (uart_tsre == 1) begin
+                        uart_write_state <= `STATE_IDLE;
+                    end
+                    else begin
+                    end
                 end
 
                 default: begin
