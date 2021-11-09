@@ -6,11 +6,10 @@ module csr_regfile(
     input wire          clk,
     input wire          rst,
 
-    // for decoder use 
-    input wire[11:0]    csr,
-    output reg[31:0]    csr_data,
+    // for read 
+    input wire[11:0]    csr_raddr,
+    output reg[31:0]    csr_rdata,
 
-    // for read
     output wire[31:0]   mtvec,
     output wire[31:0]   mscratch,
     output wire[31:0]   mepc,
@@ -62,11 +61,11 @@ module csr_regfile(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            //reg_mtvec <= 32'h00000000;
+            reg_mtvec <= 32'h00000000;
             reg_mscratch <= 32'h00000000;
             reg_mepc <= 32'h00000000;
             reg_mcause <= 32'h00000000;
-            reg_mstatus <= 32'h00000000;
+            reg_mstatus <= 32'h00001800;
             reg_mie <= 32'h00000000;
             reg_mip <= 32'h00000000;
             reg_mtval <= 32'h00000000;
@@ -75,26 +74,42 @@ module csr_regfile(
             if (mtvec_we) begin
                 reg_mtvec <= mtvec_wdata;
             end
+            else begin
+            end
             if (mscratch_we) begin
                 reg_mscratch <= mscratch_wdata;
+            end
+            else begin
             end
             if (mepc_we) begin
                 reg_mepc <= mepc_wdata;
             end
+            else begin
+            end
             if (mcause_we) begin
                 reg_mcause <= mcause_wdata;
+            end
+            else begin
             end
             if (mstatus_we) begin
                 reg_mstatus <= mstatus_wdata;
             end
+            else begin
+            end
             if (mie_we) begin
                 reg_mie <= mie_wdata;
+            end
+            else begin
             end
             if (mip_we) begin
                 reg_mip <= mip_wdata;
             end
+            else begin
+            end
             if (mtval_we) begin
                 reg_mtval <= mtval_wdata;
+            end
+            else begin
             end
             if (csr_we) begin
                 case(csr_waddr)
@@ -158,37 +173,39 @@ module csr_regfile(
                     end
                 endcase
             end
+            else begin
+            end
         end
     end
 
     always @(*) begin
-        case(csr)
+        case(csr_raddr)
             `MTVEC: begin
-                csr_data <= reg_mtvec;
+                csr_rdata = reg_mtvec;
             end
             `MSCRATCH: begin
-                csr_data <= reg_mscratch;
+                csr_rdata = reg_mscratch;
             end
             `MEPC: begin
-                csr_data <= reg_mepc;
+                csr_rdata = reg_mepc;
             end
             `MCAUSE: begin
-                csr_data <= reg_mcause;
+                csr_rdata = reg_mcause;
             end
             `MSTATUS: begin
-                csr_data <= reg_mstatus;
+                csr_rdata = reg_mstatus;
             end
             `MIE: begin
-                csr_data <= reg_mie;
+                csr_rdata = reg_mie;
             end
             `MIP: begin
-                csr_data <= reg_mip;
+                csr_rdata = reg_mip;
             end
             `MTVAL: begin
-                csr_data <= reg_mtval;
+                csr_rdata = reg_mtval;
             end
             default: begin
-                csr_data <= 32'h00000000;
+                csr_rdata = 32'h00000000;
             end
         endcase
     end

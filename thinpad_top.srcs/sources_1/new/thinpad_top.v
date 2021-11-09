@@ -174,21 +174,22 @@ module thinpad_top(
 
     // interface to decoder
     wire[31:0]          instr;
-    wire[31:0]          csr_data;
     wire[4:0]           reg_a, reg_b, reg_d;
     wire[11:0]          csr;
     wire[4:0]           ins_op;
     wire[4:0]           ins_alu_op;
     wire[31:0]          imm;
     wire[1:0]           mem_to_reg;
-    wire                a_select, b_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
+    wire                a_select, b_select, b_dat_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
     wire[3:0]           exception;
 
     // interface to br_comparator
     wire[31:0]          id_dat_a, id_dat_b;
     wire                br_eq, br_lt, br_un;
 
-    // interface to csr_regfile
+    // interface to csr_regfile       
+    wire[11:0]          csr_raddr;
+    wire[31:0]          csr_rdata;
     wire[31:0]          mtvec;
     wire[31:0]          mscratch;
     wire[31:0]          mepc;
@@ -274,7 +275,6 @@ module thinpad_top(
 
     decoder _decoder(
         .inst           (instr),
-        .csr_data       (csr_data),
         .br_eq          (br_eq),
         .br_lt          (br_lt),
         .ext_op         (ins_op),
@@ -286,6 +286,7 @@ module thinpad_top(
         .reg_b          (reg_b),
         .reg_d          (reg_d),
         .csr            (csr),
+        .b_dat_select   (b_dat_select),
         .pc_select      (pc_select),
         .mem_wr         (mem_wr),
         .mem_to_reg     (mem_to_reg),
@@ -306,11 +307,10 @@ module thinpad_top(
         .clk                (clk_50M),
         .rst                (reset_btn),
 
-        // for decoder
-        .csr                (csr),
-        .csr_data           (csr_data),
-
         // for read
+        .csr_raddr          (csr_raddr),
+        .csr_rdata          (csr_rdata),
+
         .mtvec              (mtvec),
         .mscratch           (mscratch),
         .mepc               (mepc),
@@ -397,7 +397,8 @@ module thinpad_top(
         .ins_reg_s          (reg_a),
         .ins_reg_t          (reg_b),
         .ins_reg_d          (reg_d),
-        .csr                (csr),
+        .ins_csr            (csr),
+        .ins_b_dat_select   (b_dat_select),
         .ins_a_select       (a_select),
         .ins_b_select       (b_select),
         .ins_pc_select      (pc_select),
@@ -411,6 +412,8 @@ module thinpad_top(
         .decoder_exception  (exception),
 
         // interface to csr_regfile
+        .csr_raddr      (csr_raddr),
+        .csr_rdata      (csr_rdata),
         .mtvec          (mtvec),
         .mscratch       (mscratch),
         .mepc           (mepc),

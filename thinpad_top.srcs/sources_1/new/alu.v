@@ -84,6 +84,10 @@ module alu(
                 result = (a << b) | (a >> (32 - b)); 
             end 
 
+            `A: begin
+                result = a;
+            end
+
             default: begin
                 result = 0;
             end
