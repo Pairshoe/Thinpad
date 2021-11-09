@@ -25,11 +25,10 @@ wire uart_dataready;
 wire uart_tbre;
 wire uart_tsre;
 
-parameter BASE_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\test_basic\\kernel_int.bin"; // BaseRAM Initial File
+parameter BASE_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\test_basic\\kernel.bin"; // BaseRAM Initial File
 parameter EXT_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\test_int\\test_ecall.bin";//ExtRAM Initial File
 
 initial begin 
-    #100;
     reset_btn = 1;  #100;  reset_btn = 0;
     /*# 3000;
     cpld.pc_send_byte(8'h61);  # 3000;
@@ -42,7 +41,7 @@ initial begin
     cpld.pc_send_byte(8'h68);  # 3000;
     cpld.pc_send_byte(8'h69);  # 3000;
     cpld.pc_send_byte(8'h6a);  # 3000;*/
-    #150000;
+    #570000;
     // W
     cpld.pc_send_byte(8'h57);  # 10000;
 //    // A
