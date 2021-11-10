@@ -1,5 +1,5 @@
+.section .text
 .globl _start
-.text
 _start:
     li s0, 30
     li a0, 0x4F
@@ -7,4 +7,4 @@ _start:
     li a0, 0x4B
     ecall
 _end:
-    jr ra
+    j _end

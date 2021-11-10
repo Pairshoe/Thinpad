@@ -4,6 +4,7 @@
 module mmio_regfile(
     input wire          clk,
     input wire          rst,
+    output wire         timeout,
 
     // for read
     output wire[31:0]   mtime_lo,
@@ -16,6 +17,7 @@ module mmio_regfile(
     input wire[1:0]     mtimecmp_we,
     input wire[31:0]    mtime_wdata,
     input wire[31:0]    mtimecmp_wdata
+
 );
     reg[31:0]           reg_mtime_lo;
     reg[31:0]           reg_mtime_hi;
@@ -25,6 +27,7 @@ module mmio_regfile(
     assign              mtime_hi = reg_mtime_hi;
     assign              mtimecmp_lo = reg_mtimecmp_lo;
     assign              mtimecmp_hi = reg_mtimecmp_hi;
+    assign              timeout = mtime_hi > mtimecmp_hi || (mtime_hi == mtimecmp_hi && mtime_lo > mtimecmp_lo) ? 1'b1 : 1'b0;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin

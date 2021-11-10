@@ -252,6 +252,7 @@ module thinpad_top(
     wire[31:0]          csr_wdata;
 
     // interface to mmio_regfile
+    wire                timeout;
     wire[31:0]          mtime_lo;
     wire[31:0]          mtime_hi;
     wire[31:0]          mtimecmp_lo;
@@ -380,6 +381,7 @@ module thinpad_top(
     mmio_regfile _mmio_regfile(
         .clk                (clk_50M),
         .rst                (reset_btn),
+        .timeout            (timeout),
         .mtime_lo           (mtime_lo),
         .mtime_hi           (mtime_hi), 
         .mtimecmp_lo        (mtimecmp_lo),
@@ -476,6 +478,7 @@ module thinpad_top(
         .csr_wdata      (csr_wdata),
 
         // interface to mmio_regfile
+        .timeout            (timeout),
         .mtime_lo           (mtime_lo),
         .mtime_hi           (mtime_hi), 
         .mtimecmp_lo        (mtimecmp_lo),

@@ -66,6 +66,7 @@ module pipeline(
     output reg[31:0]  csr_wdata,
 
     // interface to mmio_regfile
+    input wire        timeout,
     input wire[31:0]  mtime_lo,
     input wire[31:0]  mtime_hi,
     input wire[31:0]  mtimecmp_lo,
@@ -110,7 +111,6 @@ module pipeline(
     output reg        reg_if_id_mstatus_wr,
     output reg[1:0]   reg_if_id_mtime_wr,
     output reg[1:0]   reg_if_id_mtimecmp_wr,
-    output reg        reg_if_id_mtime_data,
 
     output reg[31:0]  reg_id_exe_pc_now,
     output reg[31:0]  reg_id_exe_data_a,
@@ -136,7 +136,6 @@ module pipeline(
     output reg        reg_id_exe_mstatus_wr,
     output reg[1:0]   reg_id_exe_mtime_wr,
     output reg[1:0]   reg_id_exe_mtimecmp_wr,
-    output reg        reg_id_exe_mtime_data,
 
     output reg[31:0]  reg_exe_mem_pc_now,
     output reg[31:0]  reg_exe_mem_data_r,
@@ -233,7 +232,7 @@ module pipeline(
     reg[2:0]          time_counter;
     reg[1:0]          forwarding_select_a, forwarding_select_b;*/
 
-    reg[31:0]         real_mtime_lo, real_mtime_hi, real_mstatus;
+    reg[31:0]         real_mstatus;
 
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
@@ -242,68 +241,7 @@ module pipeline(
     assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
-    assign alu_op = reg_id_exe_alu_op;
-
-    always @(*) begin
-        // get real_mtime_lo
-        if (reg_id_exe_mtime_wr == 2'b11) begin
-            real_mtime_lo = 32'h00000000;
-        end
-        else if (reg_id_exe_mtime_wr == 2'b01) begin
-            real_mtime_lo = reg_id_exe_mtime_data;
-        end
-        else if (reg_exe_mem_mtime_wr == 2'b11) begin
-            real_mtime_lo = 32'h00000000;
-        end
-        else if (reg_exe_mem_mtime_wr == 2'b01) begin
-            real_mtime_lo = reg_exe_mem_mtime_data;
-        end
-        else if (reg_mem_wb_mtime_wr == 2'b11) begin
-            real_mtime_lo = 32'h00000000;
-        end
-        else if (reg_mem_wb_mtime_wr == 2'b01) begin
-            real_mtime_lo = reg_mem_wb_mtime_data;
-        end
-        else begin
-            real_mtime_lo = mtime_lo;
-        end
-        // get real_mtime_hi
-        if (reg_id_exe_mtime_wr == 2'b11) begin
-            real_mtime_hi = 32'h00000000;
-        end
-        else if (reg_id_exe_mtime_wr == 2'b10) begin
-            real_mtime_hi = reg_id_exe_mtime_data;
-        end
-        else if (reg_exe_mem_mtime_wr == 2'b11) begin
-            real_mtime_hi = 32'h00000000;
-        end
-        else if (reg_exe_mem_mtime_wr == 2'b10) begin
-            real_mtime_hi = reg_exe_mem_mtime_data;
-        end
-        else if (reg_mem_wb_mtime_wr == 2'b11) begin
-            real_mtime_hi = 32'h00000000;
-        end
-        else if (reg_mem_wb_mtime_wr == 2'b10) begin
-            real_mtime_hi = reg_mem_wb_mtime_data;
-        end
-        else begin
-            real_mtime_hi = mtime_hi;
-        end
-        // get real_mstatus
-        if (reg_id_exe_mstatus_wr) begin
-            real_mstatus = reg_id_exe_mstatus_data;
-        end
-        else if (reg_exe_mem_mstatus_wr) begin
-            real_mstatus = reg_exe_mem_mstatus_data;
-        end
-        else if (reg_mem_wb_mstatus_wr) begin
-            real_mstatus = reg_mem_wb_mstatus_data;
-        end
-        else begin
-            real_mstatus = mstatus;
-        end
-    end
-      
+    assign alu_op = reg_id_exe_alu_op;      
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -324,6 +262,20 @@ module pipeline(
         end
         else begin
             id_dat_b = ins_b_dat_select == 1'b0 ? (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_exe_mem_pc_now + 4 : reg_exe_mem_data_b)) : reg_exe_mem_data_r;
+        end
+
+        // get real_mstatus
+        if (reg_id_exe_mstatus_wr) begin
+            real_mstatus = reg_id_exe_mstatus_data;
+        end
+        else if (reg_exe_mem_mstatus_wr) begin
+            real_mstatus = reg_exe_mem_mstatus_data;
+        end
+        else if (reg_mem_wb_mstatus_wr) begin
+            real_mstatus = reg_mem_wb_mstatus_data;
+        end
+        else begin
+            real_mstatus = mstatus;
         end
     end
 
@@ -360,7 +312,7 @@ module pipeline(
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
-                if ((real_mtime_hi > mtimecmp_hi) || (real_mtime_hi == mtimecmp_hi && real_mtime_lo > mtimecmp_lo)) begin //timer interrupt
+                if (timeout) begin //timer interrupt
                     // abort this and last instr
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
@@ -575,7 +527,6 @@ module pipeline(
                         reg_id_exe_mcause_wr <=  reg_if_id_mcause_wr;
                         reg_id_exe_mstatus_data <= reg_if_id_mstatus_data;
                         reg_id_exe_mstatus_wr <= reg_if_id_mstatus_wr;
-                        reg_id_exe_mtime_data <= reg_if_id_mtime_data;
                         reg_id_exe_mtime_wr <= reg_if_id_mtime_wr;
                         reg_id_exe_mtimecmp_wr <= reg_if_id_mtimecmp_wr;
                     end
@@ -613,7 +564,6 @@ module pipeline(
                     reg_exe_mem_mcause_wr <= reg_id_exe_mcause_wr;
                     reg_exe_mem_mstatus_data <= reg_id_exe_mstatus_data;
                     reg_exe_mem_mstatus_wr <= reg_id_exe_mstatus_wr;
-                    reg_exe_mem_mtime_data <= reg_id_exe_mtime_data;
                     reg_exe_mem_mtime_wr <= reg_id_exe_mtime_wr;
                     reg_exe_mem_mtimecmp_wr <= reg_id_exe_mtimecmp_wr;
                 end
