@@ -35,100 +35,132 @@ module thinpad_top(
     output wire[3:0]    ext_ram_be_n,
     output wire         ext_ram_ce_n,
     output wire         ext_ram_oe_n,
-    output wire         ext_ram_we_n/*,
+    output wire         ext_ram_we_n
 
+    /*
     // debug mode signals
-    output wire[31:0]   reg_if_id_pc_now,
-    output wire[31:0]   reg_if_id_instr,
-    output wire         reg_if_id_abort,
+    // regs between if and id
+    output wire[31:0]          reg_if_id_pc_now,
+    output wire[31:0]          reg_if_id_instr,
+    output wire                reg_if_id_abort,
 
-    output wire[31:0]   reg_id_exe_pc_now,
-    output wire[31:0]   reg_id_exe_data_a, reg_id_exe_data_b,
-    output wire[4:0]    reg_id_exe_reg_d,
-    output wire         reg_id_exe_a_select,
-    output wire         reg_id_exe_b_select,
-    output wire         reg_id_exe_pc_select,
-    output wire[4:0]    reg_id_exe_op,
-    output wire[4:0]    reg_id_exe_alu_op,
-    output wire[31:0]   reg_id_exe_imm,
-    output wire         reg_id_exe_mem_wr,
-    output wire[1:0]    reg_id_exe_mem_to_reg,
-    output wire         reg_id_exe_reg_wr,
-    output wire         reg_id_exe_abort,
+    // regs between id and exe
+    output wire[31:0]          reg_id_exe_pc_now,
+    output wire[31:0]          reg_id_exe_data_a, reg_id_exe_data_b,
+    output wire[4:0]           reg_id_exe_reg_d,
+    output wire                reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select,
+    output wire[4:0]           reg_id_exe_op,
+    output wire[4:0]           reg_id_exe_alu_op,
+    output wire[31:0]          reg_id_exe_imm,
+    output wire                reg_id_exe_mem_wr,
+    output wire[1:0]           reg_id_exe_mem_to_reg,
+    output wire                reg_id_exe_reg_wr,
+    output wire                reg_id_exe_abort,
 
-    output wire[31:0]   reg_exe_mem_pc_now,
-    output wire[31:0]   reg_exe_mem_data_r,
-    output wire[31:0]   reg_exe_mem_data_b,
-    output wire         reg_exe_mem_pc_select,
-    output wire[4:0]    reg_exe_mem_reg_d,
-    output wire[4:0]    reg_exe_mem_op,
-    output wire         reg_exe_mem_mem_wr,
-    output wire[1:0]    reg_exe_mem_mem_to_reg,
-    output wire         reg_exe_mem_reg_wr,
-    output wire         reg_exe_mem_abort,
+    // regs between exe and mem
+    output wire[31:0]          reg_exe_mem_pc_now,
+    output wire[31:0]          reg_exe_mem_data_r, reg_exe_mem_data_b,
+    output wire                reg_exe_mem_pc_select,
+    output wire[4:0]           reg_exe_mem_reg_d,
+    output wire[4:0]           reg_exe_mem_op,
+    output wire                reg_exe_mem_mem_wr,
+    output wire[1:0]           reg_exe_mem_mem_to_reg,
+    output wire                reg_exe_mem_reg_wr,
+    output wire                reg_exe_mem_abort,
 
-    output wire[31:0]   reg_mem_wb_data,
-    output wire[4:0]    reg_mem_wb_reg_d,
-    output wire[4:0]    reg_mem_wb_op,
-    output wire         reg_mem_wb_reg_wr,
-    output wire         reg_mem_wb_abort,
+    // regs between mem and wb
+    output wire[31:0]          reg_mem_wb_data,
+    output wire[4:0]           reg_mem_wb_reg_d,
+    output wire[4:0]           reg_mem_wb_op,
+    output wire                reg_mem_wb_reg_wr,
+    output wire                reg_mem_wb_abort,
 
-    output wire[3:0]    stall_if,
-    output wire[3:0]    stall_id,
-    output wire[3:0]    stall_exe,
-    output wire[3:0]    stall_mem,
-    output wire[3:0]    stall_wb,
-    output wire[31:0]   pc,
-    output wire[2:0]    time_counter,
-    output wire[1:0]    forwarding_select_a,
-    output wire[1:0]    forwarding_select_b,
+    output wire[3:0]           stall_if, stall_id, stall_exe, stall_mem, stall_wb,
+    output wire[31:0]          pc,
+    output wire[2:0]           time_counter,
+    output wire[1:0]           forwarding_select_a, forwarding_select_b,
 
-    output wire         mem_oe,
-    output wire         mem_we,
-    output wire         mem_be,
-    output wire[31:0]   mem_address,
-    output wire[31:0]   mem_data_in,
-    output wire[31:0]   mem_data_out,
+    // interface to sram and uart
+    output wire                mem_oe, mem_we, mem_be,
+    output wire[31:0]          mem_address,
+    output wire[31:0]          mem_data_in,
+    output wire[31:0]          mem_data_out,
 
-    output wire[31:0]   instr,
-    output wire[4:0]    reg_a,
-    output wire[4:0]    reg_b,
-    output wire[4:0]    reg_d,
-    output wire[4:0]    ins_op,
-    output wire[4:0]    ins_alu_op,
-    output wire[31:0]   imm,
-    output wire[1:0]    mem_to_reg,
-    output wire         a_select,
-    output wire         b_select,
-    output wire         pc_select,
-    output wire         mem_wr,
-    output wire         reg_wr,
+    // interface to decoder
+    output wire[31:0]          instr,
+    output wire[4:0]           reg_a, reg_b, reg_d,
+    output wire[11:0]          csr,
+    output wire[4:0]           ins_op,
+    output wire[4:0]           ins_alu_op,
+    output wire[31:0]          imm,
+    output wire[1:0]           mem_to_reg,
+    output wire                a_select, b_select, b_dat_select, pc_select, mem_wr, reg_wr, csr_reg_wr,
+    output wire[3:0]           exception,
 
-    output wire[31:0]   id_dat_a,
-    output wire[31:0]   id_dat_b,
-    output wire         br_eq,
-    output wire         br_lt,
-    output wire         br_un,
+    // interface to br_comparator
+    output wire[31:0]          id_dat_a, id_dat_b,
+    output wire                br_eq, br_lt, br_un,
 
-    output wire[4:0]    reg_waddr,
-    output wire[31:0]   reg_wdata,
-    output wire         reg_we,
-    output wire[4:0]    reg_raddr1,
-    output wire[4:0]    reg_raddr2,
-    output wire[31:0]   reg_rdata1,
-    output wire[31:0]   reg_rdata2,
+    // interface to csr_regfile       
+    output wire[11:0]          csr_raddr,
+    output wire[31:0]          csr_rdata,
+    output wire[31:0]          mtvec,
+    output wire[31:0]          mscratch,
+    output wire[31:0]          mepc,
+    output wire[31:0]          mcause,
+    output wire[31:0]          mstatus,
+    output wire[31:0]          mie,
+    output wire[31:0]          mip,
+    output wire[31:0]          mtval,
+    output wire                mtvec_we,
+    output wire                mscratch_we,
+    output wire                mepc_we,
+    output wire                mcause_we,
+    output wire                mstatus_we,
+    output wire                mie_we,
+    output wire                mip_we,
+    output wire                mtval_we,
+    output wire[31:0]          mtvec_wdata,
+    output wire[31:0]          mscratch_wdata,
+    output wire[31:0]          mepc_wdata,
+    output wire[31:0]          mcause_wdata,
+    output wire[31:0]          mstatus_wdata,
+    output wire[31:0]          mie_wdata,
+    output wire[31:0]          mip_wdata,
+    output wire[31:0]          mtval_wdata,
+    output wire                csr_we,
+    output wire[11:0]          csr_waddr,
+    output wire[31:0]          csr_wdata,
 
-    output wire[4:0]    alu_op,
-    output wire[31:0]   alu_data_a,
-    output wire[31:0]   alu_data_b,
-    output wire[31:0]   alu_data_r,
-    output wire[3:0]    alu_flag*/
+    // interface to mmio_regfile
+    output wire[31:0]          mtime_lo,
+    output wire[31:0]          mtime_hi,
+    output wire[31:0]          mtimecmp_lo,
+    output wire[31:0]          mtimecmp_hi,
+    output wire[1:0]           mtime_we,
+    output wire[1:0]           mtimecmp_we,
+    output wire[31:0]          mtime_wdata,
+    output wire[31:0]          mtimecmp_wdata,
+
+    // interface to regfile
+    output wire[4:0]           reg_waddr,
+    output wire[31:0]          reg_wdata,
+    output wire                reg_we,
+    output wire[4:0]           reg_raddr1, reg_raddr2,
+    output wire[31:0]          reg_rdata1, reg_rdata2,
+
+    // interface to alu
+    output wire[4:0]           alu_op,
+    output wire[31:0]          alu_data_a, alu_data_b, alu_data_r,
+    output wire[3:0]           alu_flag*/
 );
     // release mode signals
+    
     // regs between if and id
     wire[31:0]          reg_if_id_pc_now;
     wire[31:0]          reg_if_id_instr;
     wire                reg_if_id_abort;
+    wire[31:0]          pc;
 
     // regs between id and exe
     wire[31:0]          reg_id_exe_pc_now;
@@ -162,7 +194,7 @@ module thinpad_top(
     wire                reg_mem_wb_abort;
 
     wire[3:0]           stall_if, stall_id, stall_exe, stall_mem, stall_wb;
-    wire[31:0]          pc;
+    
     wire[2:0]           time_counter;
     wire[1:0]           forwarding_select_a, forwarding_select_b;
 
@@ -173,8 +205,9 @@ module thinpad_top(
     wire[31:0]          mem_data_out;
 
     // interface to decoder
-    wire[31:0]          instr;
+    
     wire[4:0]           reg_a, reg_b, reg_d;
+    wire[31:0]          instr;
     wire[11:0]          csr;
     wire[4:0]           ins_op;
     wire[4:0]           ins_alu_op;
@@ -239,7 +272,7 @@ module thinpad_top(
     wire[4:0]           alu_op;
     wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
     wire[3:0]           alu_flag;
-
+    
     sram _sram(
         .clk            (clk_50M),
         .rst            (reset_btn),
