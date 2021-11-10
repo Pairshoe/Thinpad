@@ -82,7 +82,7 @@ initial begin
     cpld.pc_send_byte(8'h40);  # 10000;
     cpld.pc_send_byte(8'h80);  # 10000;
     
-    # 200000;
+    # 500000;
     // D
     cpld.pc_send_byte(8'h44);  # 10000;
     // addr: 0x80000000

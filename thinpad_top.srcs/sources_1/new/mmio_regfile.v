@@ -40,6 +40,10 @@ module mmio_regfile(
             else if (mtime_we == 2'b10) begin
                 reg_mtime_hi <= mtime_wdata;
             end
+            else if (mtime_we == 2'b11) begin
+                reg_mtime_lo <= 32'h00000000;
+                reg_mtime_hi <= 32'h00000000;
+            end
             else begin // time count
                 if (reg_mtime_lo == { 32 { 1'b1 } }) begin
                     reg_mtime_lo <= 0;
