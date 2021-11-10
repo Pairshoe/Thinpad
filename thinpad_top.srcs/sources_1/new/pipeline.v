@@ -109,6 +109,7 @@ module pipeline(
     output reg[31:0]  reg_if_id_mstatus_data,
     output reg        reg_if_id_mstatus_wr,
     output reg[1:0]   reg_if_id_mtime_wr,
+    output reg[1:0]   reg_if_id_mtimecmp_wr,
     output reg        reg_if_id_mtime_data,
 
     output reg[31:0]  reg_id_exe_pc_now,
@@ -134,6 +135,7 @@ module pipeline(
     output reg[31:0]  reg_id_exe_mstatus_data,
     output reg        reg_id_exe_mstatus_wr,
     output reg[1:0]   reg_id_exe_mtime_wr,
+    output reg[1:0]   reg_id_exe_mtimecmp_wr,
     output reg        reg_id_exe_mtime_data,
 
     output reg[31:0]  reg_exe_mem_pc_now,
@@ -369,7 +371,8 @@ module pipeline(
                     reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
                     reg_if_id_mcause_wr <=  1'b1;
                     reg_if_id_mstatus_wr <= 1'b0;
-                    reg_if_id_mtime_wr <= 2'b11; // set time to 0
+                    reg_if_id_mtime_wr <= 2'b11; // set mtime to 0
+                    reg_if_id_mtimecmp_wr <= 2'b11; // in case of unexpected interrupt
                 end
 
                 // control hazard
@@ -452,6 +455,7 @@ module pipeline(
                             reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
                             reg_if_id_mstatus_wr <= 1'b1;
                             reg_if_id_mtime_wr <= 2'b00;
+                            reg_if_id_mtimecmp_wr <= 2'b00;
                         end
                         else if (ins_op == `OP_EBREAK) begin // ebreak
                             // abort this instr
@@ -465,6 +469,7 @@ module pipeline(
                             reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
                             reg_if_id_mstatus_wr <= 1'b1;
                             reg_if_id_mtime_wr <= 2'b00;
+                            reg_if_id_mtimecmp_wr <= 2'b00;
                         end
                         else if (ins_op == `OP_ECALL) begin // ecall
                             // abort this instr
@@ -478,6 +483,7 @@ module pipeline(
                             reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
                             reg_if_id_mstatus_wr <= 1'b1;
                             reg_if_id_mtime_wr <= 2'b00;
+                            reg_if_id_mtimecmp_wr <= 2'b00;
                         end
                         else if (ins_op == `OP_MRET) begin // mret
                             // abort this instr
@@ -489,12 +495,14 @@ module pipeline(
                             reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } };
                             reg_if_id_mstatus_wr <= 1'b1;
                             reg_if_id_mtime_wr <= 2'b00;
+                            reg_if_id_mtimecmp_wr <= 2'b00;
                         end
                         else begin // no exception/interrupt in id
                             reg_if_id_mepc_wr <= 1'b0;
                             reg_if_id_mcause_wr <=  1'b0;
                             reg_if_id_mstatus_wr <= 1'b0;
                             reg_if_id_mtime_wr <= 2'b00;
+                            reg_if_id_mtimecmp_wr <= 2'b00;
                         end
                     end
                     else begin
@@ -569,6 +577,7 @@ module pipeline(
                         reg_id_exe_mstatus_wr <= reg_if_id_mstatus_wr;
                         reg_id_exe_mtime_data <= reg_if_id_mtime_data;
                         reg_id_exe_mtime_wr <= reg_if_id_mtime_wr;
+                        reg_id_exe_mtimecmp_wr <= reg_if_id_mtimecmp_wr;
                     end
                     default: begin
                     end
@@ -606,6 +615,7 @@ module pipeline(
                     reg_exe_mem_mstatus_wr <= reg_id_exe_mstatus_wr;
                     reg_exe_mem_mtime_data <= reg_id_exe_mtime_data;
                     reg_exe_mem_mtime_wr <= reg_id_exe_mtime_wr;
+                    reg_exe_mem_mtimecmp_wr <= reg_id_exe_mtimecmp_wr;
                 end
                 else begin
                 end
