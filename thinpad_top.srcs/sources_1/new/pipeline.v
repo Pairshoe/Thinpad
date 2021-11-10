@@ -334,7 +334,7 @@ module pipeline(
             // reset csr_regfile control signal
             mtvec_we <= 0; mscratch_we <= 0; mepc_we <= 0; mcause_we <= 0; mstatus_we <=0; mie_we <= 0; mip_we <= 0; mtval_we <=0; csr_we <= 0;
             // reset mmio_regfile control signal
-            mtime_we <= 0; mtimecmp_we <= 0;
+            mtime_we <= 2'b00; mtimecmp_we <= 2'b00;
             // reset regfile control signal
             regfile_we <= 0;
             // reset stall signal
@@ -715,9 +715,10 @@ module pipeline(
                                         reg_exe_mem_mtimecmp_wr <= 2'b00;
                                     end
                                 endcase
-                                
                             end
                             else begin
+                                reg_exe_mem_mtime_wr <= 2'b00;
+                                reg_exe_mem_mtimecmp_wr <= 2'b00;
                             end
                         end
                         2: begin 
@@ -798,8 +799,8 @@ module pipeline(
                         2: begin
                             regfile_we <= 0;
                             csr_we <= 0;
-                            mtime_we <= 0;
-                            mtimecmp_we <= 0;
+                            mtime_we <= 2'b00;
+                            mtimecmp_we <= 2'b00;
                         end
                         default: begin
                         end
@@ -843,8 +844,8 @@ module pipeline(
                             mepc_we <= 0;
                             mcause_we <= 0;
                             mstatus_we <= 0;
-                            mtime_we <= 0;
-                            mtimecmp_we <= 0;
+                            mtime_we <= 2'b00;
+                            mtimecmp_we <= 2'b00;
                         end
                         default: begin
                         end

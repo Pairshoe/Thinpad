@@ -57,8 +57,8 @@ module regfile(
     end
 
     always @(*) begin
-        if (raddr1 == 32'b0) begin
-            rdata1 = 32'b0;
+        if (raddr1 == 5'b00000) begin
+            rdata1 = 32'h00000000;
         end
         else begin
             rdata1 = registers[raddr1];
@@ -66,8 +66,8 @@ module regfile(
     end
 
     always @(*) begin
-        if (raddr2 == 32'b0) begin
-            rdata2 = 32'b0;
+        if (raddr2 == 5'b00000) begin
+            rdata2 = 32'h00000000;
         end
         else begin
             rdata2 = registers[raddr2];

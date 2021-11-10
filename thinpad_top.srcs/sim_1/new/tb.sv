@@ -26,7 +26,7 @@ wire uart_tbre;
 wire uart_tsre;
 
 parameter BASE_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\test_kernel\\kernel_int_quick.bin"; // BaseRAM Initial File
-parameter EXT_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\test_int\\test_ecall.bin";//ExtRAM Initial File
+parameter EXT_RAM_INIT_FILE = "C:\\Users\\86189\\Desktop\\cod21-grp67\\tests\\sum.bin";//ExtRAM Initial File
 
 initial begin 
     reset_btn = 1;  #100;  reset_btn = 0;
@@ -82,19 +82,19 @@ initial begin
     cpld.pc_send_byte(8'h40);  # 10000;
     cpld.pc_send_byte(8'h80);  # 10000;
     
-    # 500000;
-    // D
-    cpld.pc_send_byte(8'h44);  # 10000;
-    // addr: 0x80000000
-    cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h80);  # 10000;
-    // len: 0x000000008
-    cpld.pc_send_byte(8'h08);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
-    cpld.pc_send_byte(8'h00);  # 10000;
+//    # 300000;
+//    // D
+//    cpld.pc_send_byte(8'h44);  # 10000;
+//    // addr: 0x80000000
+//    cpld.pc_send_byte(8'h00);  # 10000;
+//    cpld.pc_send_byte(8'h00);  # 10000;
+//    cpld.pc_send_byte(8'h00);  # 10000;
+//    cpld.pc_send_byte(8'h80);  # 10000;
+//    // len: 0x000000008
+//    cpld.pc_send_byte(8'h08);  # 10000;
+//    cpld.pc_send_byte(8'h00);  # 10000;
+//    cpld.pc_send_byte(8'h00);  # 10000;
+//    cpld.pc_send_byte(8'h00);  # 10000;
     
 end
 
