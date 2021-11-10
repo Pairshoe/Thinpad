@@ -299,7 +299,7 @@ module pipeline(
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
-                if ((realtime_hi > mtimecmp_hi) || (realtime_hi == mtimecmp_hi && realtime_lo > mtimecmp_lo)) begin //timer interrupt
+                /*if ((realtime_hi > mtimecmp_hi) || (realtime_hi == mtimecmp_hi && realtime_lo > mtimecmp_lo)) begin //timer interrupt
                     // abort this and last instr
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
@@ -316,7 +316,8 @@ module pipeline(
                 end
 
                 // control hazard
-                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
+                else*/
+                if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
                     if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
                         pc <= reg_exe_mem_data_r & 32'hfffffffe;
                     end
