@@ -186,9 +186,7 @@ module pipeline(
     output reg[31:0]  pc,
     output reg[2:0]   time_counter,
     output reg[1:0]   forwarding_select_a,
-    output reg[1:0]   forwarding_select_b,
-    output wire[31:0] realtime_lo,
-    output wire[31:0] realtime_hi
+    output reg[1:0]   forwarding_select_b
 );
 
     /* release mode signals
@@ -233,6 +231,8 @@ module pipeline(
     reg[2:0]          time_counter;
     reg[1:0]          forwarding_select_a, forwarding_select_b;*/
 
+    reg[31:0]         real_mtime_lo, real_mtime_hi, real_mstatus;
+
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
@@ -241,8 +241,67 @@ module pipeline(
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
-    assign realtime_lo = reg_id_exe_mtime_wr == 2'b01 ? reg_id_exe_mtime_data : (reg_exe_mem_mtime_wr == 2'b01 ? reg_exe_mem_mtime_data : (reg_mem_wb_mtime_wr == 2'b01 ? reg_mem_wb_mtime_data : mtime_lo));
-    assign realtime_hi = reg_id_exe_mtime_wr == 2'b10 ? reg_id_exe_mtime_data : (reg_exe_mem_mtime_wr == 2'b10 ? reg_exe_mem_mtime_data : (reg_mem_wb_mtime_wr == 2'b10 ? reg_mem_wb_mtime_data : mtime_hi));
+
+    always @(*) begin
+        // get real_mtime_lo
+        if (reg_id_exe_mtime_wr == 2'b11) begin
+            real_mtime_lo = 32'h00000000;
+        end
+        else if (reg_id_exe_mtime_wr == 2'b01) begin
+            real_mtime_lo = reg_id_exe_mtime_data;
+        end
+        else if (reg_exe_mem_mtime_wr == 2'b11) begin
+            real_mtime_lo = 32'h00000000;
+        end
+        else if (reg_exe_mem_mtime_wr == 2'b01) begin
+            real_mtime_lo = reg_exe_mem_mtime_data;
+        end
+        else if (reg_mem_wb_mtime_wr == 2'b11) begin
+            real_mtime_lo = 32'h00000000;
+        end
+        else if (reg_mem_wb_mtime_wr == 2'b01) begin
+            real_mtime_lo = reg_mem_wb_mtime_data;
+        end
+        else begin
+            real_mtime_lo = mtime_lo;
+        end
+        // get real_mtime_hi
+        if (reg_id_exe_mtime_wr == 2'b11) begin
+            real_mtime_hi = 32'h00000000;
+        end
+        else if (reg_id_exe_mtime_wr == 2'b10) begin
+            real_mtime_hi = reg_id_exe_mtime_data;
+        end
+        else if (reg_exe_mem_mtime_wr == 2'b11) begin
+            real_mtime_hi = 32'h00000000;
+        end
+        else if (reg_exe_mem_mtime_wr == 2'b10) begin
+            real_mtime_hi = reg_exe_mem_mtime_data;
+        end
+        else if (reg_mem_wb_mtime_wr == 2'b11) begin
+            real_mtime_hi = 32'h00000000;
+        end
+        else if (reg_mem_wb_mtime_wr == 2'b10) begin
+            real_mtime_hi = reg_mem_wb_mtime_data;
+        end
+        else begin
+            real_mtime_hi = mtime_hi;
+        end
+        // get real_mstatus
+        if (reg_id_exe_mstatus_wr) begin
+            real_mstatus = reg_id_exe_mstatus_data;
+        end
+        else if (reg_exe_mem_mstatus_wr) begin
+            real_mstatus = reg_exe_mem_mstatus_data;
+        end
+        else if (reg_mem_wb_mstatus_wr) begin
+            real_mstatus = reg_mem_wb_mstatus_data;
+        end
+        else begin
+            real_mstatus = mstatus;
+        end
+    end
+      
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -299,20 +358,18 @@ module pipeline(
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
-                if ((realtime_hi > mtimecmp_hi) || (realtime_hi == mtimecmp_hi && realtime_lo > mtimecmp_lo)) begin //timer interrupt
+                if ((real_mtime_hi > mtimecmp_hi) || (real_mtime_hi == mtimecmp_hi && real_mtime_lo > mtimecmp_lo)) begin //timer interrupt
                     // abort this and last instr
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
                     // set pc and csr regs 
-                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `S_TIMER_INT, 2'b00 };
-                    reg_if_id_mepc_data <= 32'h80000690; // TODO: return to kernel shell? 
-                    reg_if_id_mepc_wr <= 1'b1;
-                    reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `S_TIMER_INT };
+                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
+                    // reg_if_id_mepc_data <= 32'h80000690; // return to kernel shell? 
+                    reg_if_id_mepc_wr <= 1'b0;
+                    reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
                     reg_if_id_mcause_wr <=  1'b1;
-                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                    reg_if_id_mstatus_wr <= 1'b1;
-                    reg_if_id_mtime_data <= 32'h00000000; // set mtime_lo to 0
-                    reg_if_id_mtime_wr <= 2'b01;
+                    reg_if_id_mstatus_wr <= 1'b0;
+                    reg_if_id_mtime_wr <= 2'b11; // set time to 0
                 end
 
                 // control hazard
@@ -413,26 +470,10 @@ module pipeline(
                             // abort this instr
                             reg_if_id_abort <= 1;
                             // set pc and csr regs 
-                            // find the real mstatus value and judge
-                            if (reg_id_exe_mstatus_wr) begin
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (reg_id_exe_mstatus_data[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                reg_if_id_mcause_data <= reg_id_exe_mstatus_data[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            end
-                            else if (reg_exe_mem_mstatus_wr) begin
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (reg_exe_mem_mstatus_data[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                reg_if_id_mcause_data <= reg_exe_mem_mstatus_data[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            end
-                            else if (reg_mem_wb_mstatus_wr) begin
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (reg_mem_wb_mstatus_data[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                reg_if_id_mcause_data <= reg_mem_wb_mstatus_data[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            end
-                            else begin
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (mstatus[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                reg_if_id_mcause_data <= mstatus[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            end
-                            
+                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (real_mstatus[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
                             reg_if_id_mepc_data <= reg_if_id_pc_now;
                             reg_if_id_mepc_wr <= 1'b1;
+                            reg_if_id_mcause_data <= real_mstatus[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
                             reg_if_id_mcause_wr <=  1'b1;
                             reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
                             reg_if_id_mstatus_wr <= 1'b1;
