@@ -6,7 +6,6 @@
 
 module decoder(
     input wire[31:0]        inst,
-    input wire[31:0]        csr_data,
     input wire              br_eq,
     input wire              br_lt,
     output wire[4:0]        ext_op,
@@ -18,6 +17,7 @@ module decoder(
     output wire[4:0]        reg_b,
     output wire[4:0]        reg_d,
     output wire[11:0]       csr,
+    output wire             b_dat_select,
     output wire             pc_select,
     output wire             mem_wr,
     output wire[1:0]        mem_to_reg,
@@ -35,7 +35,7 @@ module decoder(
     reg[4:0]    alu_op_reg;
     reg[31:0]   imm_reg;
     reg[1:0]    mem_to_reg_reg;
-    reg         a_select_reg, b_select_reg, pc_select_reg, mem_wr_reg, reg_wr_reg, csr_reg_wr_reg;
+    reg         a_select_reg, b_select_reg, pc_select_reg, b_dat_select_reg, mem_wr_reg, reg_wr_reg, csr_reg_wr_reg;
     reg         exception_reg;
 
     assign sign = inst[31];
@@ -50,7 +50,7 @@ module decoder(
     assign ext_op = ext_op_reg;
     assign alu_op = alu_op_reg;
     assign imm = imm_reg;
-    assign a_select = a_select_reg, b_select = b_select_reg, pc_select = pc_select_reg;
+    assign a_select = a_select_reg, b_select = b_select_reg, pc_select = pc_select_reg, b_dat_select = b_dat_select_reg;
     assign mem_wr = mem_wr_reg, mem_to_reg = mem_to_reg_reg, reg_wr = reg_wr_reg, csr_reg_wr = csr_reg_wr_reg;
     assign exception = exception_reg;
 
@@ -61,6 +61,7 @@ module decoder(
         b_select_reg = 1'b0;
         a_select_reg = 1'b0;
         pc_select_reg = 1'b0;
+        b_dat_select_reg = 1'b0;
         mem_wr_reg = 1'b0;
         mem_to_reg_reg = 2'b00;
         reg_wr_reg = 1'b0;
@@ -275,7 +276,8 @@ module decoder(
                     3'b011: begin // CSRRC
                         ext_op_reg = `OP_CSRR;
                         alu_op_reg = `NANDN;
-                        imm_reg = csr_data;
+                        b_select_reg = 1'b1;
+                        b_dat_select_reg = 1'b1;
                         mem_to_reg_reg = 2'b11;
                         reg_wr_reg = 1'b1;
                         csr_reg_wr_reg = 1'b1;
@@ -283,15 +285,17 @@ module decoder(
                     3'b010: begin // CSRRS
                         ext_op_reg = `OP_CSRR;
                         alu_op_reg = `OR;
-                        imm_reg = csr_data;
+                        b_select_reg = 1'b1;
+                        b_dat_select_reg = 1'b1;
                         mem_to_reg_reg = 2'b11;
                         reg_wr_reg = 1'b1;
                         csr_reg_wr_reg = 1'b1;
                     end
                     3'b001: begin // CSRRW
                         ext_op_reg = `OP_CSRR;
-                        alu_op_reg = `ADD;
-                        imm_reg = csr_data;
+                        alu_op_reg = `A;
+                        b_select_reg = 1'b1;
+                        b_dat_select_reg = 1'b1;
                         mem_to_reg_reg = 2'b11;
                         reg_wr_reg = 1'b1;
                         csr_reg_wr_reg = 1'b1;

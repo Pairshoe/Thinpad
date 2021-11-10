@@ -20,3 +20,8 @@
 `define M_TIMER_INT                 4'b0111
 `define S_EXTERNAL_INT              4'b1001
 `define M_EXTERNAL_INT              4'b1011
+
+`define MTIME_LO_ADDR               32'h0200bff8
+`define MTIME_HI_ADDR               32'h0200bffc
+`define MTIMECMP_LO_ADDR            32'h02004000
+`define MTIMECMP_HI_ADDR            32'h02004004

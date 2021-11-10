@@ -14,3 +14,4 @@
 `define SRL       5'b01101
 `define SRA       5'b01110
 `define ROL       5'b01111
+`define A         5'b10000
