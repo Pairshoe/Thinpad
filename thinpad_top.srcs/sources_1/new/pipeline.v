@@ -299,15 +299,15 @@ module pipeline(
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
-                /*if ((realtime_hi > mtimecmp_hi) || (realtime_hi == mtimecmp_hi && realtime_lo > mtimecmp_lo)) begin //timer interrupt
+                if ((realtime_hi > mtimecmp_hi) || (realtime_hi == mtimecmp_hi && realtime_lo > mtimecmp_lo)) begin //timer interrupt
                     // abort this and last instr
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
                     // set pc and csr regs 
-                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
-                    reg_if_id_mepc_data <= 32'h80000690; // TODO: return to kernel shell 
+                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `S_TIMER_INT, 2'b00 };
+                    reg_if_id_mepc_data <= 32'h80000690; // TODO: return to kernel shell? 
                     reg_if_id_mepc_wr <= 1'b1;
-                    reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
+                    reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `S_TIMER_INT };
                     reg_if_id_mcause_wr <=  1'b1;
                     reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
                     reg_if_id_mstatus_wr <= 1'b1;
@@ -316,8 +316,7 @@ module pipeline(
                 end
 
                 // control hazard
-                else*/
-                if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
+                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
                     if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
                         pc <= reg_exe_mem_data_r & 32'hfffffffe;
                     end
