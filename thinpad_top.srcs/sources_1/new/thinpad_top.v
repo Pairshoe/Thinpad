@@ -115,7 +115,7 @@ module thinpad_top(
     (* dont_touch = "true" *) wire[3:0]           alu_flag;
 
     sram _sram(
-        .clk            (clk_11M0592),
+        .clk            (clk_50M),
         .rst            (reset_btn),
 
         .be             (mem_be),
@@ -190,7 +190,7 @@ module thinpad_top(
     );
 
     csr_regfile _csr_regfile(
-        .clk                (clk_11M0592),
+        .clk                (clk_50M),
         .rst                (reset_btn),
 
         // for read
@@ -237,7 +237,7 @@ module thinpad_top(
     );
 
     regfile _regfile(
-        .clk            (clk_11M0592),
+        .clk            (clk_50M),
         .rst            (reset_btn),
         .we             (reg_we),
         .waddr          (reg_waddr),
@@ -260,7 +260,7 @@ module thinpad_top(
     // pipeline
     pipeline _pipeline(
         // clock and reset
-        .clk            (clk_11M0592),
+        .clk            (clk_50M),
         .rst            (reset_btn),
 
         // interface to sram and uart

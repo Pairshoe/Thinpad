@@ -58,7 +58,7 @@ module sram(
     (* dont_touch = "true" *) reg[3:0]          state, uart_write_state, mtime_state;
     (* dont_touch = "true" *) reg               reg_timeout;
     
-    (* dont_touch = "true" *) reg[42:0]         TLBs[0:15];
+    (* dont_touch = "true" *) reg[42:0]         TLBs[0:3];
 
     assign base_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
@@ -113,18 +113,6 @@ module sram(
             TLBs[1] <= 43'b0;
             TLBs[2] <= 43'b0;
             TLBs[3] <= 43'b0;
-            TLBs[4] <= 43'b0;
-            TLBs[5] <= 43'b0;
-            TLBs[6] <= 43'b0;
-            TLBs[7] <= 43'b0;
-            TLBs[8] <= 43'b0;
-            TLBs[9] <= 43'b0;
-            TLBs[10] <= 43'b0;
-            TLBs[11] <= 43'b0;
-            TLBs[12] <= 43'b0;
-            TLBs[13] <= 43'b0;
-            TLBs[14] <= 43'b0;
-            TLBs[15] <= 43'b0;
         end
         else begin
             case(state)
@@ -134,18 +122,6 @@ module sram(
                         TLBs[1][42] <= 1'b0;
                         TLBs[2][42] <= 1'b0;
                         TLBs[3][42] <= 1'b0;
-                        TLBs[4][42] <= 1'b0;
-                        TLBs[5][42] <= 1'b0;
-                        TLBs[6][42] <= 1'b0;
-                        TLBs[7][42] <= 1'b0;
-                        TLBs[8][42] <= 1'b0;
-                        TLBs[9][42] <= 1'b0;
-                        TLBs[10][42] <= 1'b0;
-                        TLBs[11][42] <= 1'b0;
-                        TLBs[12][42] <= 1'b0;
-                        TLBs[13][42] <= 1'b0;
-                        TLBs[14][42] <= 1'b0;
-                        TLBs[15][42] <= 1'b0;
                     end
                     if (we) begin
                         case({ use_sram, use_uart, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi })
@@ -175,90 +151,6 @@ module sram(
                                     else if (address[31:12] == TLBs[3][41:22] && TLBs[3][42] == 1) begin
                                         state <= `STATE_SRAM_WRITE;
                                         reg_address <= TLBs[3][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[4][41:22] && TLBs[4][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[4][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[5][41:22] && TLBs[5][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[5][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[6][41:22] && TLBs[6][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[6][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[7][41:22] && TLBs[7][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[7][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[8][41:22] && TLBs[8][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[8][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[9][41:22] && TLBs[9][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[9][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[10][41:22] && TLBs[10][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[10][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[11][41:22] && TLBs[11][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[11][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[12][41:22] && TLBs[12][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[12][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[13][41:22] && TLBs[13][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[13][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[14][41:22] && TLBs[14][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[14][21:0] * `PAGE_SIZE + address[11:0];
-                                        base_ram_we_n <= use_ext ? 1 : 0;
-                                        ext_ram_we_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[15][41:22] && TLBs[15][42] == 1) begin
-                                        state <= `STATE_SRAM_WRITE;
-                                        reg_address <= TLBs[15][21:0] * `PAGE_SIZE + address[11:0];
                                         base_ram_we_n <= use_ext ? 1 : 0;
                                         ext_ram_we_n <= use_ext ? 0 : 1;
                                         done <= 1'b0; 
@@ -344,102 +236,6 @@ module sram(
                                         ext_ram_oe_n <= use_ext ? 0 : 1;
                                         done <= 1'b0; 
                                     end
-                                    else if (address[31:12] == TLBs[4][41:22] && TLBs[4][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[4][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[5][41:22] && TLBs[5][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[5][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[6][41:22] && TLBs[6][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[6][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[7][41:22] && TLBs[7][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[7][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[8][41:22] && TLBs[8][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[8][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[9][41:22] && TLBs[9][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[9][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[10][41:22] && TLBs[10][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[10][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[11][41:22] && TLBs[11][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[11][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[12][41:22] && TLBs[12][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[12][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[13][41:22] && TLBs[13][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[13][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[14][41:22] && TLBs[14][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[14][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
-                                    else if (address[31:12] == TLBs[15][41:22] && TLBs[15][42] == 1) begin
-                                        state <= `STATE_SRAM_READ;
-                                        reg_address <= TLBs[15][21:0] * `PAGE_SIZE + address[11:0];
-                                        data_z <= 1'b1;
-                                        base_ram_oe_n <= use_ext ? 1 : 0;
-                                        ext_ram_oe_n <= use_ext ? 0 : 1;
-                                        done <= 1'b0; 
-                                    end
                                     else begin
                                         state <= `STATE_SRAM_READ_PAGE_0;
                                         reg_address <= satp[21:0] * `PAGE_SIZE + address[31:22] * `PTE_SIZE;
@@ -514,42 +310,6 @@ module sram(
                     else if (TLBs[3][42] == 0) begin
                         TLBs[3] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
                     end
-                    else if (TLBs[4][42] == 0) begin
-                        TLBs[4] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[5][42] == 0) begin
-                        TLBs[5] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[6][42] == 0) begin
-                        TLBs[6] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[7][42] == 0) begin
-                        TLBs[7] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[8][42] == 0) begin
-                        TLBs[8] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[9][42] == 0) begin
-                        TLBs[9] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[10][42] == 0) begin
-                        TLBs[10] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[11][42] == 0) begin
-                        TLBs[11] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[12][42] == 0) begin
-                        TLBs[12] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[13][42] == 0) begin
-                        TLBs[13] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[14][42] == 0) begin
-                        TLBs[14] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[15][42] == 0) begin
-                        TLBs[15] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
                 end
 
                 `STATE_SRAM_WRITE_PAGE_2: begin
@@ -586,42 +346,6 @@ module sram(
                     end
                     else if (TLBs[3][42] == 0) begin
                         TLBs[3] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[4][42] == 0) begin
-                        TLBs[4] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[5][42] == 0) begin
-                        TLBs[5] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[6][42] == 0) begin
-                        TLBs[6] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[7][42] == 0) begin
-                        TLBs[7] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[8][42] == 0) begin
-                        TLBs[8] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[9][42] == 0) begin
-                        TLBs[9] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[10][42] == 0) begin
-                        TLBs[10] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[11][42] == 0) begin
-                        TLBs[11] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[12][42] == 0) begin
-                        TLBs[12] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[13][42] == 0) begin
-                        TLBs[13] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[14][42] == 0) begin
-                        TLBs[14] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
-                    end
-                    else if (TLBs[15][42] == 0) begin
-                        TLBs[15] <= { 1'b1, address[31:12], base_ram_data_wire[31:10] };
                     end
                 end
 
