@@ -234,13 +234,13 @@ module pipeline(
         end
         else begin
             // 7 clk posedges for a cycle
-            time_counter <= (time_counter >= 3 && mem_done == 1) ? 0 : time_counter + 1;
+            time_counter <= (time_counter >= 2 && mem_done == 1) ? 0 : time_counter + 1;
             // stall signal countdown
-            stall_if <= (time_counter >= 3 && mem_done == 1) ? (stall_if > 0 ? stall_if - 1 : 0) : stall_if;
-            stall_id <= (time_counter >= 3 && mem_done == 1) ? (stall_id > 0 ? stall_id - 1 : 0) : stall_id;
-            stall_exe <= (time_counter >= 3 && mem_done == 1) ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
-            stall_mem <= (time_counter >= 3 && mem_done == 1) ? (stall_mem > 0 ? stall_mem - 1 : 0) : stall_mem;
-            stall_wb <= (time_counter >= 3 && mem_done == 1) ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
+            stall_if <= (time_counter >= 2 && mem_done == 1) ? (stall_if > 0 ? stall_if - 1 : 0) : stall_if;
+            stall_id <= (time_counter >= 2 && mem_done == 1) ? (stall_id > 0 ? stall_id - 1 : 0) : stall_id;
+            stall_exe <= (time_counter >= 2 && mem_done == 1) ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
+            stall_mem <= (time_counter >= 2 && mem_done == 1) ? (stall_mem > 0 ? stall_mem - 1 : 0) : stall_mem;
+            stall_wb <= (time_counter >= 2 && mem_done == 1) ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
@@ -476,19 +476,19 @@ module pipeline(
                     end
                 end
             end
-            else if (time_counter == 2) begin
+            else if (time_counter == 1) begin
                 mem_oe <= 1'b0;
                 mem_we <= 1'b0;
                 mem_tlb_clr <= reg_exe_mem_tlb_clr;
             end
             // reset forwarding signal
-            else if (time_counter >= 3 && mem_done == 1) begin
+            else if (time_counter >= 2 && mem_done == 1) begin
                 forwarding_select_a <= 0;
                 forwarding_select_b <= 0;
             end
 
             // stage if
-            if (stall_if == 0 && time_counter >= 3 && mem_done == 1) begin
+            if (stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
                 // fetch instructions from memory
                 pc <= pc + 4;
                 reg_if_id_pc_now <= pc;
@@ -496,12 +496,12 @@ module pipeline(
                 reg_if_id_abort <= 0;
             end
             // bubble insertion
-            else if (time_counter >= 3 && mem_done == 1 && stall_id == 0) begin
+            else if (time_counter >= 2 && mem_done == 1 && stall_id == 0) begin
                 reg_if_id_abort <= 1;
             end
 
             // stage id
-            if (stall_id == 0 && time_counter >= 3 && mem_done == 1) begin
+            if (stall_id == 0 && time_counter >= 2 && mem_done == 1) begin
                 reg_id_exe_pc_now <= reg_if_id_pc_now;
                 reg_id_exe_data_a <= id_dat_a;
                 reg_id_exe_data_b <= id_dat_b;
@@ -529,12 +529,12 @@ module pipeline(
                 reg_id_exe_tlb_clr <= ins_tlb_clr;
             end
             // bubble insertion
-            else if (time_counter >= 3 && mem_done == 1 && stall_exe == 0) begin
+            else if (time_counter >= 2 && mem_done == 1 && stall_exe == 0) begin
                 reg_id_exe_abort <= 1;
             end
 
             // stage exe
-            if (stall_exe == 0 && time_counter >= 3 && mem_done == 1) begin
+            if (stall_exe == 0 && time_counter >= 2 && mem_done == 1) begin
                 reg_exe_mem_pc_now <= reg_id_exe_pc_now;
                 reg_exe_mem_data_r <= alu_data_r;
                 reg_exe_mem_data_b <= reg_id_exe_data_b;
@@ -558,12 +558,12 @@ module pipeline(
                 reg_exe_mem_tlb_clr <= reg_id_exe_tlb_clr;
             end
             // bubble insertion
-            else if (time_counter >= 3 && mem_done == 1 && stall_mem == 0) begin
+            else if (time_counter >= 2 && mem_done == 1 && stall_mem == 0) begin
                 reg_exe_mem_abort <= 1;
             end
 
             // stage mem
-            if (stall_mem == 0 && time_counter >= 3 && mem_done == 1) begin
+            if (stall_mem == 0 && time_counter >= 2 && mem_done == 1) begin
                 reg_mem_wb_data <= reg_exe_mem_mem_to_reg == 2'b00 ? mem_data_out : (reg_exe_mem_mem_to_reg == 2'b01 ? reg_exe_mem_data_r : (reg_exe_mem_mem_to_reg == 2'b10 ? reg_exe_mem_pc_now + 4 : reg_exe_mem_data_b));
                 reg_mem_wb_csr_data <= reg_exe_mem_data_r;
                 reg_mem_wb_reg_d <= reg_exe_mem_reg_d;
@@ -582,7 +582,7 @@ module pipeline(
                 reg_mem_wb_mode_wr <= reg_exe_mem_mode_wr;
             end
             // bubble insertion
-            else if (time_counter >= 3 && mem_done == 1 && stall_wb == 0) begin
+            else if (time_counter >= 2 && mem_done == 1 && stall_wb == 0) begin
                 reg_mem_wb_abort <= 1;
             end
 
