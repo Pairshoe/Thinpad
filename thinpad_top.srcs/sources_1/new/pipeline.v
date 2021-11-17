@@ -182,8 +182,6 @@ module pipeline(
     (* dont_touch = "true" *) reg[4:0]   time_counter;
     (* dont_touch = "true" *) reg[1:0]   forwarding_select_a, forwarding_select_b;
 
-    reg[31:0]         real_mstatus;
-
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
@@ -191,7 +189,7 @@ module pipeline(
     assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
-    assign alu_op = reg_id_exe_alu_op;      
+    assign alu_op = reg_id_exe_alu_op;
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -475,75 +473,6 @@ module pipeline(
                         mem_be <= 1'b0;
                         mem_tlb_clr <= reg_exe_mem_tlb_clr;
                         mem_address <= pc;
-                    end
-
-                    // exception handle, only when id is effective
-                    // lower priority than b/j instructions, and avoid rewrite pc when b/j instructions happens before
-                    if (stall_id == 0 && reg_if_id_abort == 0) begin 
-                        // priority from high to low
-                        if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
-                            // abort this instr
-                            reg_if_id_abort <= 1;
-                            // set pc and csr regs 
-                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `ILLEGAL_INSTR_EXC, 2'b00 };
-                            reg_if_id_mepc_data <= reg_if_id_pc_now;
-                            reg_if_id_mepc_wr <= 1'b1;
-                            reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `ILLEGAL_INSTR_EXC };
-                            reg_if_id_mcause_wr <=  1'b1;
-                            reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            reg_if_id_mstatus_wr <= 1'b1;
-                            reg_if_id_mtime_wr <= 2'b00;
-                            reg_if_id_mtimecmp_wr <= 2'b00;
-                        end
-                        else if (ins_op == `OP_EBREAK) begin // ebreak
-                            // abort this instr
-                            reg_if_id_abort <= 1;
-                            // set pc and csr regs 
-                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `BREAKPOINT_EXC, 2'b00 };
-                            reg_if_id_mepc_data <= reg_if_id_pc_now;
-                            reg_if_id_mepc_wr <= 1'b1;
-                            reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `BREAKPOINT_EXC };
-                            reg_if_id_mcause_wr <=  1'b1;
-                            reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            reg_if_id_mstatus_wr <= 1'b1;
-                            reg_if_id_mtime_wr <= 2'b00;
-                            reg_if_id_mtimecmp_wr <= 2'b00;
-                        end
-                        else if (ins_op == `OP_ECALL) begin // ecall
-                            // abort this instr
-                            reg_if_id_abort <= 1;
-                            // set pc and csr regs 
-                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (real_mstatus[12:11] == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                            reg_if_id_mepc_data <= reg_if_id_pc_now;
-                            reg_if_id_mepc_wr <= 1'b1;
-                            reg_if_id_mcause_data <= real_mstatus[12:11] == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                            reg_if_id_mcause_wr <=  1'b1;
-                            reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } };
-                            reg_if_id_mstatus_wr <= 1'b1;
-                            reg_if_id_mtime_wr <= 2'b00;
-                            reg_if_id_mtimecmp_wr <= 2'b00;
-                        end
-                        else if (ins_op == `OP_MRET) begin // mret
-                            // abort this instr
-                            reg_if_id_abort <= 1;
-                            // set pc and csr regs 
-                            pc <= mepc;
-                            reg_if_id_mepc_wr <= 1'b0;
-                            reg_if_id_mcause_wr <=  1'b0;
-                            reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } };
-                            reg_if_id_mstatus_wr <= 1'b1;
-                            reg_if_id_mtime_wr <= 2'b00;
-                            reg_if_id_mtimecmp_wr <= 2'b00;
-                        end
-                        else begin // no exception/interrupt in id
-                            reg_if_id_mepc_wr <= 1'b0;
-                            reg_if_id_mcause_wr <=  1'b0;
-                            reg_if_id_mstatus_wr <= 1'b0;
-                            reg_if_id_mtime_wr <= 2'b00;
-                            reg_if_id_mtimecmp_wr <= 2'b00;
-                        end
-                    end
-                    else begin
                     end
                 end
             end

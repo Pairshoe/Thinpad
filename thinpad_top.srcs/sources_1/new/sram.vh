@@ -11,5 +11,12 @@
 `define STATE_UART_READ             4'b1010
 `define STATE_FINISHED              4'b1011
 
+`define UART_ADDR                   32'h10000000
+`define UART_STATE_ADDR             32'h10000005
+`define MTIME_LO_ADDR               32'h0200bff8
+`define MTIME_HI_ADDR               32'h0200bffc
+`define MTIMECMP_LO_ADDR            32'h02004000
+`define MTIMECMP_HI_ADDR            32'h02004004
+
 `define PAGE_SIZE                   4096
 `define PTE_SIZE                    4

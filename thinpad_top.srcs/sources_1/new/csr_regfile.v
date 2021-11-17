@@ -163,8 +163,6 @@ module csr_regfile(
                     end
                 endcase
             end
-            else begin
-            end
         end
     end
 
