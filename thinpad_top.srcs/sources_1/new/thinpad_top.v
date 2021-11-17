@@ -39,80 +39,80 @@ module thinpad_top(
 );
 
     // interface to sram and uart
-    (* dont_touch = "true" *) wire                mem_oe, mem_we, mem_be, mem_tlb_clr;
-    (* dont_touch = "true" *) wire[31:0]          mem_address;
-    (* dont_touch = "true" *) wire[31:0]          mem_data_in;
-    (* dont_touch = "true" *) wire[31:0]          mem_data_out;
-    (* dont_touch = "true" *) wire                mem_done;
-    (* dont_touch = "true" *) wire                timeout;
-    (* dont_touch = "true" *) wire[3:0]           mem_exception;
+    /* (* dont_touch = "true" *) */ wire                mem_oe, mem_we, mem_be, mem_tlb_clr;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mem_address;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mem_data_in;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mem_data_out;
+    /* (* dont_touch = "true" *) */ wire                mem_done;
+    /* (* dont_touch = "true" *) */ wire                timeout;
+    /* (* dont_touch = "true" *) */ wire[3:0]           mem_exception;
 
     // interface to decoder
-    (* dont_touch = "true" *) wire[31:0]          instr;
-    (* dont_touch = "true" *) wire[31:0]          csr_data;
-    (* dont_touch = "true" *) wire[4:0]           reg_a, reg_b, reg_d;
-    (* dont_touch = "true" *) wire[11:0]          csr;
-    (* dont_touch = "true" *) wire                b_dat_select;
-    (* dont_touch = "true" *) wire[4:0]           ins_op;
-    (* dont_touch = "true" *) wire[4:0]           ins_alu_op;
-    (* dont_touch = "true" *) wire[31:0]          imm;
-    (* dont_touch = "true" *) wire[1:0]           mem_to_reg;
-    (* dont_touch = "true" *) wire                a_select, b_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
-    (* dont_touch = "true" *) wire                tlb_clr;
-    (* dont_touch = "true" *) wire[3:0]           decoder_exception;
+    /* (* dont_touch = "true" *) */ wire[31:0]          instr;
+    /* (* dont_touch = "true" *) */ wire[31:0]          csr_data;
+    /* (* dont_touch = "true" *) */ wire[4:0]           reg_a, reg_b, reg_d;
+    /* (* dont_touch = "true" *) */ wire[11:0]          csr;
+    /* (* dont_touch = "true" *) */ wire                b_dat_select;
+    /* (* dont_touch = "true" *) */ wire[4:0]           ins_op;
+    /* (* dont_touch = "true" *) */ wire[4:0]           ins_alu_op;
+    /* (* dont_touch = "true" *) */ wire[31:0]          imm;
+    /* (* dont_touch = "true" *) */ wire[1:0]           mem_to_reg;
+    /* (* dont_touch = "true" *) */ wire                a_select, b_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
+    /* (* dont_touch = "true" *) */ wire                tlb_clr;
+    /* (* dont_touch = "true" *) */ wire[3:0]           decoder_exception;
 
     // interface to br_comparator
-    (* dont_touch = "true" *) wire[31:0]          id_dat_a, id_dat_b;
-    (* dont_touch = "true" *) wire                br_eq, br_lt, br_un, br_a_eqz, br_b_eqz;
+    /* (* dont_touch = "true" *) */ wire[31:0]          id_dat_a, id_dat_b;
+    /* (* dont_touch = "true" *) */ wire                br_eq, br_lt, br_un, br_a_eqz, br_b_eqz;
 
     // interface to csr_regfile       
-    (* dont_touch = "true" *) wire[11:0]          csr_raddr;
-    (* dont_touch = "true" *) wire[31:0]          csr_rdata;
-    (* dont_touch = "true" *) wire[31:0]          mtvec;
-    (* dont_touch = "true" *) wire[31:0]          mscratch;
-    (* dont_touch = "true" *) wire[31:0]          mepc;
-    (* dont_touch = "true" *) wire[31:0]          mcause;
-    (* dont_touch = "true" *) wire[31:0]          mstatus;
-    (* dont_touch = "true" *) wire[31:0]          mie;
-    (* dont_touch = "true" *) wire[31:0]          mip;
-    (* dont_touch = "true" *) wire[31:0]          mtval;
-    (* dont_touch = "true" *) wire[31:0]          satp;
-    (* dont_touch = "true" *) wire[1:0]           mode;
-    (* dont_touch = "true" *) wire                mtvec_we;
-    (* dont_touch = "true" *) wire                mscratch_we;
-    (* dont_touch = "true" *) wire                mepc_we;
-    (* dont_touch = "true" *) wire                mcause_we;
-    (* dont_touch = "true" *) wire                mstatus_we;
-    (* dont_touch = "true" *) wire                mie_we;
-    (* dont_touch = "true" *) wire                mip_we;
-    (* dont_touch = "true" *) wire                mtval_we;
-    (* dont_touch = "true" *) wire                satp_we;
-    (* dont_touch = "true" *) wire                mode_we;
-    (* dont_touch = "true" *) wire[31:0]          mtvec_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mscratch_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mepc_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mcause_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mstatus_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mie_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mip_wdata;
-    (* dont_touch = "true" *) wire[31:0]          mtval_wdata;
-    (* dont_touch = "true" *) wire[31:0]          satp_wdata;
-    (* dont_touch = "true" *) wire[1:0]           mode_wdata;
-    (* dont_touch = "true" *) wire                csr_we;
-    (* dont_touch = "true" *) wire[11:0]          csr_waddr;
-    (* dont_touch = "true" *) wire[31:0]          csr_wdata;
+    /* (* dont_touch = "true" *) */ wire[11:0]          csr_raddr;
+    /* (* dont_touch = "true" *) */ wire[31:0]          csr_rdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mtvec;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mscratch;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mepc;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mcause;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mstatus;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mie;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mip;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mtval;
+    /* (* dont_touch = "true" *) */ wire[31:0]          satp;
+    /* (* dont_touch = "true" *) */ wire[1:0]           mode;
+    /* (* dont_touch = "true" *) */ wire                mtvec_we;
+    /* (* dont_touch = "true" *) */ wire                mscratch_we;
+    /* (* dont_touch = "true" *) */ wire                mepc_we;
+    /* (* dont_touch = "true" *) */ wire                mcause_we;
+    /* (* dont_touch = "true" *) */ wire                mstatus_we;
+    /* (* dont_touch = "true" *) */ wire                mie_we;
+    /* (* dont_touch = "true" *) */ wire                mip_we;
+    /* (* dont_touch = "true" *) */ wire                mtval_we;
+    /* (* dont_touch = "true" *) */ wire                satp_we;
+    /* (* dont_touch = "true" *) */ wire                mode_we;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mtvec_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mscratch_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mepc_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mcause_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mstatus_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mie_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mip_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          mtval_wdata;
+    /* (* dont_touch = "true" *) */ wire[31:0]          satp_wdata;
+    /* (* dont_touch = "true" *) */ wire[1:0]           mode_wdata;
+    /* (* dont_touch = "true" *) */ wire                csr_we;
+    /* (* dont_touch = "true" *) */ wire[11:0]          csr_waddr;
+    /* (* dont_touch = "true" *) */ wire[31:0]          csr_wdata;
 
     // interface to regfile
-    (* dont_touch = "true" *) wire[4:0]           reg_waddr;
-    (* dont_touch = "true" *) wire[31:0]          reg_wdata;
-    (* dont_touch = "true" *) wire                reg_we;
-    (* dont_touch = "true" *) wire[4:0]           reg_raddr1, reg_raddr2;
-    (* dont_touch = "true" *) wire[31:0]          reg_rdata1, reg_rdata2;
+    /* (* dont_touch = "true" *) */ wire[4:0]           reg_waddr;
+    /* (* dont_touch = "true" *) */ wire[31:0]          reg_wdata;
+    /* (* dont_touch = "true" *) */ wire                reg_we;
+    /* (* dont_touch = "true" *) */ wire[4:0]           reg_raddr1, reg_raddr2;
+    /* (* dont_touch = "true" *) */ wire[31:0]          reg_rdata1, reg_rdata2;
 
     // interface to alu
-    (* dont_touch = "true" *) wire[4:0]           alu_op;
-    (* dont_touch = "true" *) wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
-    (* dont_touch = "true" *) wire[3:0]           alu_flag;
+    /* (* dont_touch = "true" *) */ wire[4:0]           alu_op;
+    /* (* dont_touch = "true" *) */ wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
+    /* (* dont_touch = "true" *) */ wire[3:0]           alu_flag;
 
     sram _sram(
         .clk            (clk_50M),

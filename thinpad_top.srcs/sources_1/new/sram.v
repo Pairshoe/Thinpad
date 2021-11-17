@@ -8,14 +8,14 @@ module sram(
     input wire                                  rst,
 
     // interface to user
-    (* dont_touch = "true" *) input wire        oe,
-    (* dont_touch = "true" *) input wire        we,
+    /* (* dont_touch = "true" *) */ input wire        oe,
+    /* (* dont_touch = "true" *) */ input wire        we,
     // if using uart, even without 'be' set, byte input/output will be used
-    (* dont_touch = "true" *) input wire        be,
-    (* dont_touch = "true" *) input wire[31:0]  address,
-    (* dont_touch = "true" *) input wire[31:0]  data_in,
-    (* dont_touch = "true" *) output reg[31:0]  data_out,
-    (* dont_touch = "true" *) output reg        done,
+    /* (* dont_touch = "true" *) */ input wire        be,
+    /* (* dont_touch = "true" *) */ input wire[31:0]  address,
+    /* (* dont_touch = "true" *) */ input wire[31:0]  data_in,
+    /* (* dont_touch = "true" *) */ output reg[31:0]  data_out,
+    /* (* dont_touch = "true" *) */ output reg        done,
 
     // interface to BaseRAM
     inout wire[31:0]                            base_ram_data_wire,
@@ -41,24 +41,24 @@ module sram(
     input wire                                  uart_tsre,
 
     // others
-    (* dont_touch = "true" *) input wire        tlb_clr,
-    (* dont_touch = "true" *) input wire[31:0]  satp,
-    (* dont_touch = "true" *) input wire[1:0]   mode,
-    (* dont_touch = "true" *) output wire       timeout,
-    (* dont_touch = "true" *) output wire[3:0]  exception
+    /* (* dont_touch = "true" *) */ input wire        tlb_clr,
+    /* (* dont_touch = "true" *) */ input wire[31:0]  satp,
+    /* (* dont_touch = "true" *) */ input wire[1:0]   mode,
+    /* (* dont_touch = "true" *) */ output wire       timeout,
+    /* (* dont_touch = "true" *) */ output wire[3:0]  exception
 );
 
-    (* dont_touch = "true" *) reg               data_z;
-    (* dont_touch = "true" *) reg[31:0]         reg_address;
-    (* dont_touch = "true" *) reg[21:0]         reg_entry;
-    (* dont_touch = "true" *) wire              use_sram, use_base, use_ext, use_uart, 
+    /* (* dont_touch = "true" *) */ reg               data_z;
+    /* (* dont_touch = "true" *) */ reg[31:0]         reg_address;
+    /* (* dont_touch = "true" *) */ reg[21:0]         reg_entry;
+    /* (* dont_touch = "true" *) */ wire              use_sram, use_base, use_ext, use_uart, 
                                                 use_uart_state, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi;
-    (* dont_touch = "true" *) wire[7:0]         uart_state_data;
-    (* dont_touch = "true" *) reg[31:0]         reg_mtime_lo, reg_mtime_hi, reg_mtimecmp_lo, reg_mtimecmp_hi;
-    (* dont_touch = "true" *) reg[3:0]          state, uart_write_state, mtime_state;
-    (* dont_touch = "true" *) reg               reg_timeout;
+    /* (* dont_touch = "true" *) */ wire[7:0]         uart_state_data;
+    /* (* dont_touch = "true" *) */ reg[31:0]         reg_mtime_lo, reg_mtime_hi, reg_mtimecmp_lo, reg_mtimecmp_hi;
+    /* (* dont_touch = "true" *) */ reg[3:0]          state, uart_write_state, mtime_state;
+    /* (* dont_touch = "true" *) */ reg               reg_timeout;
     
-    (* dont_touch = "true" *) reg[42:0]         TLBs[0:3];
+    /* (* dont_touch = "true" *) */ reg[42:0]         TLBs[0:3];
 
     assign base_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
