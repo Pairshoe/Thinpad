@@ -22,3 +22,4 @@
 `define OP_EBREAK     5'b10101
 `define OP_ECALL      5'b10110
 `define OP_MRET       5'b10111
+`define OP_SFENCE_VMA 5'b11000

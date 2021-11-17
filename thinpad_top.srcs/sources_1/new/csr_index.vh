@@ -6,3 +6,4 @@
 `define MIE       12'h304
 `define MIP       12'h344
 `define MTVAL     12'h343
+`define SATP      12'h180

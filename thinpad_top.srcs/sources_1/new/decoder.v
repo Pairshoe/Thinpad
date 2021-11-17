@@ -1,5 +1,5 @@
 `default_nettype none
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 `include "ops.vh"
 `include "alu.vh"
 `include "exception_interrupt.vh"
@@ -8,6 +8,8 @@ module decoder(
     input wire[31:0]        inst,
     input wire              br_eq,
     input wire              br_lt,
+    input wire              br_a_eqz,
+    input wire              br_b_eqz,
     output wire[4:0]        ext_op,
     output wire[4:0]        alu_op,
     output wire[31:0]       imm,
@@ -23,6 +25,7 @@ module decoder(
     output wire[1:0]        mem_to_reg,
     output wire             reg_wr,
     output wire             csr_reg_wr,
+    output wire             tlb_clr,
     output wire[3:0]        exception
 );
 
@@ -37,6 +40,7 @@ module decoder(
     reg[1:0]    mem_to_reg_reg;
     reg         a_select_reg, b_select_reg, pc_select_reg, b_dat_select_reg, mem_wr_reg, reg_wr_reg, csr_reg_wr_reg;
     reg         exception_reg;
+    reg         tlb_clr_reg;
 
     assign sign = inst[31];
     assign unsign_ext = { 27{ 1'b0 } };
@@ -52,6 +56,7 @@ module decoder(
     assign imm = imm_reg;
     assign a_select = a_select_reg, b_select = b_select_reg, pc_select = pc_select_reg, b_dat_select = b_dat_select_reg;
     assign mem_wr = mem_wr_reg, mem_to_reg = mem_to_reg_reg, reg_wr = reg_wr_reg, csr_reg_wr = csr_reg_wr_reg;
+    assign tlb_clr = tlb_clr_reg;
     assign exception = exception_reg;
 
     always @(*) begin
@@ -66,6 +71,7 @@ module decoder(
         mem_to_reg_reg = 2'b00;
         reg_wr_reg = 1'b0;
         csr_reg_wr_reg = 1'b0;
+        tlb_clr_reg = 1'b0;
         exception_reg = `NO_EXC;
         
         case(inst[6:0])
@@ -252,21 +258,44 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b1110011: begin // CSRRC, CSRRS, CSRRW, EBREAK, ECALL, MRET
+            7'b1110011: begin // CSRRC, CSRRS, CSRRW, EBREAK, ECALL, MRET, SFENCE_VMA
                 case(inst[14:12])
-                    3'b000: begin // EBREAK, ECALL, MRET
-                        case(inst[31:20])
-                            12'b000000000001: begin // EBREAK
-                                ext_op_reg = `OP_EBREAK;
-                                alu_op_reg = `ADD;
+                    3'b000: begin // ECALL, EBREAK, MRET, SFENCE_VMA
+                        case(inst[31:25])
+                            7'b0000000: begin // ECALL, EBREAK
+                                case(inst[24:20])
+                                    5'b00000: begin // ECALL
+                                        ext_op_reg = `OP_ECALL;
+                                        alu_op_reg = `ADD;
+                                    end
+                                    5'b00001: begin // EBREAK
+                                        ext_op_reg = `OP_EBREAK;
+                                        alu_op_reg = `ADD;
+                                    end
+                                    default: begin
+                                        exception_reg = `ILLEGAL_INSTR_EXC;
+                                    end
+                                endcase
                             end
-                            12'b000000000000: begin // ECALL
-                                ext_op_reg = `OP_ECALL;
-                                alu_op_reg = `ADD;
+                            7'b0011000: begin // MRET
+                                case(inst[24:20])
+                                    5'b00010: begin
+                                        ext_op_reg = `OP_MRET;
+                                        alu_op_reg = `ADD;
+                                    end
+                                    default: begin
+                                        exception_reg = `ILLEGAL_INSTR_EXC;
+                                    end
+                                endcase
                             end
-                            12'b001100000010: begin // MRET
-                                ext_op_reg = `OP_MRET;
-                                alu_op_reg = `ADD;
+                            7'b0001001: begin // SFENCE_VMA
+                                ext_op_reg = `OP_SFENCE_VMA;
+                                if (br_a_eqz && br_b_eqz) begin
+                                    tlb_clr_reg = 1'b1;
+                                end
+                                else begin
+                                    tlb_clr_reg = 1'b0;
+                                end 
                             end
                             default: begin
                                 exception_reg = `ILLEGAL_INSTR_EXC;

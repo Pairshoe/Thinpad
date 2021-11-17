@@ -1,5 +1,5 @@
 `default_nettype none
-`timescale 1ns / 1ps
+`timescale 1ns / 100ps
 `include "alu.vh"
 
 module alu(

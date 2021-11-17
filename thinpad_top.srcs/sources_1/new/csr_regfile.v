@@ -1,5 +1,4 @@
 `default_nettype none
-`timescale 1ns / 1ps
 `include "csr_index.vh"
 
 module csr_regfile(
@@ -18,6 +17,8 @@ module csr_regfile(
     output wire[31:0]   mie,
     output wire[31:0]   mip,
     output wire[31:0]   mtval,
+    output wire[31:0]   satp,
+    output wire[1:0]    mode, 
 
     // for write
     input wire          mtvec_we,
@@ -28,6 +29,8 @@ module csr_regfile(
     input wire          mie_we,
     input wire          mip_we,
     input wire          mtval_we,
+    input wire          satp_we,
+    input wire          mode_we,
     input wire[31:0]    mtvec_wdata,
     input wire[31:0]    mscratch_wdata,
     input wire[31:0]    mepc_wdata,
@@ -36,6 +39,8 @@ module csr_regfile(
     input wire[31:0]    mie_wdata,
     input wire[31:0]    mip_wdata,
     input wire[31:0]    mtval_wdata,
+    input wire[31:0]    satp_wdata,
+    input wire[1:0]     mode_wdata,
 
     // for writeback
     input wire          csr_we,
@@ -50,6 +55,8 @@ module csr_regfile(
     reg[31:0]           reg_mie;
     reg[31:0]           reg_mip;
     reg[31:0]           reg_mtval;
+    reg[31:0]           reg_satp;
+    reg[1:0]            reg_mode;
     assign              mtvec = reg_mtvec;
     assign              mscratch = reg_mscratch;
     assign              mepc = reg_mepc;
@@ -58,6 +65,8 @@ module csr_regfile(
     assign              mie = reg_mie;
     assign              mip = reg_mip;
     assign              mtval = reg_mtval;
+    assign              satp = reg_satp;
+    assign              mode = reg_mode;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -69,104 +78,85 @@ module csr_regfile(
             reg_mie <= 32'h00000000;
             reg_mip <= 32'h00000000;
             reg_mtval <= 32'h00000000;
+            reg_satp <= 32'h00000000;
+            reg_mode <= 2'b11;
         end
         else begin
             if (mtvec_we) begin
                 reg_mtvec <= mtvec_wdata;
             end
-            else begin
-            end
             if (mscratch_we) begin
                 reg_mscratch <= mscratch_wdata;
-            end
-            else begin
             end
             if (mepc_we) begin
                 reg_mepc <= mepc_wdata;
             end
-            else begin
-            end
             if (mcause_we) begin
                 reg_mcause <= mcause_wdata;
-            end
-            else begin
             end
             if (mstatus_we) begin
                 reg_mstatus <= mstatus_wdata;
             end
-            else begin
-            end
             if (mie_we) begin
                 reg_mie <= mie_wdata;
-            end
-            else begin
             end
             if (mip_we) begin
                 reg_mip <= mip_wdata;
             end
-            else begin
-            end
             if (mtval_we) begin
                 reg_mtval <= mtval_wdata;
             end
-            else begin
+            if (satp_we) begin
+                reg_satp <= satp_wdata;
+            end
+            if (mode_we) begin
+                reg_mode <= mode_wdata;
             end
             if (csr_we) begin
                 case(csr_waddr)
                     `MTVEC: begin
-                        if (!mtval_we) begin
+                        if (!mtvec_we) begin
                             reg_mtvec <= csr_wdata;
-                        end
-                        else begin
                         end
                     end
                     `MSCRATCH: begin
                         if (!mscratch_we) begin
                             reg_mscratch <= csr_wdata;
                         end
-                        else begin
-                        end
                     end
                     `MEPC: begin
                         if (!mepc_we) begin
                             reg_mepc <= csr_wdata;
-                        end
-                        else begin
                         end
                     end
                     `MCAUSE: begin
                         if (!mcause_we) begin
                             reg_mcause <= csr_wdata;
                         end
-                        else begin
-                        end
                     end
                     `MSTATUS: begin
                         if (!mstatus_we) begin
                             reg_mstatus <= csr_wdata;
-                        end
-                        else begin
                         end
                     end
                     `MIE: begin
                         if (!mie_we) begin
                             reg_mie <= csr_wdata;
                         end
-                        else begin
-                        end
                     end
                     `MIP: begin
                         if (!mip_we) begin
                             reg_mip <= csr_wdata;
-                        end
-                        else begin
                         end
                     end
                     `MTVAL: begin
                         if (!mtval_we) begin
                             reg_mtval <= csr_wdata;
                         end
-                        else begin
+                    end
+                    `SATP: begin
+                        if (!satp_we) begin
+                            reg_satp <= csr_wdata;
                         end
                     end
                     default: begin
@@ -203,6 +193,9 @@ module csr_regfile(
             end
             `MTVAL: begin
                 csr_rdata = reg_mtval;
+            end
+            `SATP: begin
+                csr_rdata = reg_satp;
             end
             default: begin
                 csr_rdata = 32'h00000000;
