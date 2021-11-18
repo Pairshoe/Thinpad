@@ -1,8 +1,8 @@
-    .org 0x0
     .global _start
     .text
 
 _start:
+    add   x10, x1, x0
     lui   x1, 0
     bne   x1, x0, end
     ori   x1, x0, 10
@@ -31,12 +31,13 @@ jend:
     addi  x5, x5, 1
     addi  x5, x5, 1
     addi  x5, x5, 1
+_mid:
     jalr  x6, 0(x4)
 
 next:
-    jal   x7, 88
+    j _mid
     auipc x8, 0
 
 # assert x5 = 45 and x7 = x8
 end:
-    beq   x0, x0, end
+    jr x10

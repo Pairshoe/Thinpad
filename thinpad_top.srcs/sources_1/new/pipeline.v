@@ -8,12 +8,12 @@ module pipeline(
     input wire        rst,
 
     // interface to sram and uart
-    output reg        mem_be,
+    output wire       mem_be,
     output reg        mem_oe,
     output reg        mem_we,
-    output reg        mem_tlb_clr,
-    output reg[31:0]  mem_address,
-    output reg[31:0]  mem_data_in,
+    output wire       mem_tlb_clr,
+    output wire[31:0] mem_address,
+    output wire[31:0] mem_data_in,
     input wire[31:0]  mem_data_out,
     input wire        mem_done,
     input wire[3:0]   mem_exception,
@@ -177,7 +177,7 @@ module pipeline(
     (* dont_touch = "true" *) reg[1:0]   reg_mem_wb_mode_data;
     (* dont_touch = "true" *) reg        reg_mem_wb_mode_wr;
 
-    (* dont_touch = "true" *) reg[3:0]   stall_if, stall_id, stall_exe, stall_mem, stall_wb;
+    (* dont_touch = "true" *) reg[3:0]   stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     (* dont_touch = "true" *) reg[31:0]  pc;
     (* dont_touch = "true" *) reg[4:0]   time_counter;
     (* dont_touch = "true" *) reg[1:0]   forwarding_select_a, forwarding_select_b;
@@ -190,6 +190,11 @@ module pipeline(
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
+    assign mem_be = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB));
+    assign mem_tlb_clr = (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_tlb_clr);
+    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
+    assign mem_data_in = reg_exe_mem_data_b;
+
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -218,13 +223,13 @@ module pipeline(
             // reset program counter
             pc <= 32'h80000000;
             // reset memory control signal
-            mem_be <= 1'b0;  mem_oe <= 1'b0;  mem_we <= 1'b0;
+            mem_oe <= 1'b0;  mem_we <= 1'b0;
             // reset csr_regfile control signal
             mtvec_we <= 1'b0; mscratch_we <= 1'b0; mepc_we <= 1'b0; mcause_we <= 1'b0; mie_we <= 1'b0; mip_we <= 1'b0; mtval_we <= 1'b0; satp_we <= 1'b0; mode_we <= 1'b0; csr_we <= 1'b0;
             // reset regfile control signal
             regfile_we <= 1'b0;
             // reset stall signal
-            stall_if <= 0;  stall_id <= 0;  stall_exe <= 0;  stall_mem <= 0;  stall_wb <= 0;
+            stall_structural_hazard <= 0;  stall_if <= 0;  stall_id <= 0;  stall_exe <= 0;  stall_mem <= 0;  stall_wb <= 0;
             // reset time counter
             time_counter <= 0;
             // reset abort signal
@@ -236,6 +241,7 @@ module pipeline(
             // 7 clk posedges for a cycle
             time_counter <= (time_counter >= 2 && mem_done == 1) ? 0 : time_counter + 1;
             // stall signal countdown
+            stall_structural_hazard <= (time_counter >= 2 && mem_done == 1) ? (stall_structural_hazard > 0 ? stall_structural_hazard - 1 : 0) : stall_structural_hazard;
             stall_if <= (time_counter >= 2 && mem_done == 1) ? (stall_if > 0 ? stall_if - 1 : 0) : stall_if;
             stall_id <= (time_counter >= 2 && mem_done == 1) ? (stall_id > 0 ? stall_id - 1 : 0) : stall_id;
             stall_exe <= (time_counter >= 2 && mem_done == 1) ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
@@ -250,7 +256,6 @@ module pipeline(
                     reg_id_exe_abort <= 1;
                     // set pc and csr regs 
                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
-                    // reg_if_id_mepc_data <= 32'h80000690; // return to kernel shell? 
                     reg_if_id_mepc_wr <= 1'b0;
                     reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
                     reg_if_id_mcause_wr <=  1'b1;
@@ -258,25 +263,8 @@ module pipeline(
                     reg_if_id_mstatus_wr <=  1'b1;
                     reg_if_id_mode_data <= 2'b11; // set machine mode
                     reg_if_id_mode_wr <= 1'b1;
-                    // structural hazard
-                    if (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW) begin
-                        stall_if <= 1;
-                        mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                        mem_we <= reg_exe_mem_mem_wr;
-                        mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= reg_exe_mem_data_r;
-                        mem_data_in <= reg_exe_mem_data_b;
-                    end
-                    else if (stall_if == 0) begin
-                        mem_oe <= 1'b1;
-                        mem_we <= 1'b0;
-                        mem_be <= 1'b0;
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= (mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 });
-                    end
                 end
-                // control hazard or structural hazard
+                // control hazard
                 else if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
                     if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
                         pc <= reg_exe_mem_data_r & 32'hfffffffe;
@@ -290,50 +278,18 @@ module pipeline(
                     reg_if_id_mcause_wr <= 1'b0;
                     reg_if_id_mstatus_wr <= 1'b0;
                     reg_if_id_mode_wr <= 1'b0;
-                    // structural hazard
-                    if (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW) begin
-                        stall_if <= 1;
-                        mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                        mem_we <= reg_exe_mem_mem_wr;
-                        mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= reg_exe_mem_data_r;
-                        mem_data_in <= reg_exe_mem_data_b;
-                    end
-                    else if (stall_if == 0) begin
-                        mem_oe <= 1'b1;
-                        mem_we <= 1'b0;
-                        mem_be <= 1'b0;
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
-                    end
                 end
-                // data hazard or structural hazard or interrupt & exception
+                // data hazard or interrupt & exception
                 else begin
                     if (stall_id == 0 && reg_if_id_abort == 0) begin
                         // data hazard ( LB & LW )
                         if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1 && (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW)) begin
                             stall_if <= 2;
                             stall_id <= 2;
-                            if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                                mem_we <= reg_exe_mem_mem_wr;
-                                mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                                mem_address <= reg_exe_mem_data_r;
-                                mem_data_in <= reg_exe_mem_data_b;
-                            end
                         end
                         else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW)) begin
                             stall_if <= 1;
                             stall_id <= 1;
-                            if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                                mem_we <= reg_exe_mem_mem_wr;
-                                mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                                mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                                mem_address <= reg_exe_mem_data_r;
-                                mem_data_in <= reg_exe_mem_data_b;
-                            end
                         end
                         // data hazard ( forwarding )
                         else begin
@@ -359,6 +315,8 @@ module pipeline(
 
                             // priority from high to low
                             if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
+                                // stall if for 4 cycles
+                                stall_if <= 4;
                                 // abort this instr
                                 reg_if_id_abort <= 1;
                                 // set pc and csr regs 
@@ -418,38 +376,7 @@ module pipeline(
                                 reg_if_id_mode_data <= 2'b00; // set user mode as present mode
                                 reg_if_id_mode_wr <= 1'b1;
                             end
-                            // structural hazard
-                            else if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                                stall_if <= 1;
-                                mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                                mem_we <= reg_exe_mem_mem_wr;
-                                mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                                mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                                mem_address <= reg_exe_mem_data_r;
-                                mem_data_in <= reg_exe_mem_data_b;
-                            end
-                            else if (stall_if == 0) begin
-                                mem_oe <= 1'b1;
-                                mem_we <= 1'b0;
-                                mem_be <= 1'b0;
-                                mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                                if (decoder_exception == `ILLEGAL_INSTR_EXC) begin
-                                    mem_address <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `ILLEGAL_INSTR_EXC, 2'b00 };
-                                end
-                                else if (ins_op == `OP_EBREAK) begin
-                                    mem_address <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `BREAKPOINT_EXC, 2'b00 };
-                                end
-                                else if (ins_op == `OP_ECALL) begin
-                                    mem_address <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (mode == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                end
-                                else if (ins_op == `OP_MRET) begin
-                                    mem_address <= mepc;
-                                end
-                                else begin
-                                    mem_address <= pc;
-                                end
-                            end
-                            else begin // no exception/interrupt in id
+                            else begin // no exception / interrupt in id
                                 reg_if_id_mepc_wr <= 1'b0;
                                 reg_if_id_mcause_wr <=  1'b0;
                                 reg_if_id_mstatus_wr <= 1'b0;
@@ -457,29 +384,22 @@ module pipeline(
                             end
                         end
                     end
-                    // structural hazard
-                    else if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
-                        stall_if <= 1;
-                        mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
-                        mem_we <= reg_exe_mem_mem_wr;
-                        mem_be <= (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB);
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= reg_exe_mem_data_r;
-                        mem_data_in <= reg_exe_mem_data_b;
-                    end
-                    else if (stall_if == 0) begin
-                        mem_oe <= 1'b1;
-                        mem_we <= 1'b0;
-                        mem_be <= 1'b0;
-                        mem_tlb_clr <= reg_exe_mem_tlb_clr;
-                        mem_address <= pc;
-                    end
+                end
+
+                // structural hazard
+                if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
+                    stall_structural_hazard <= 1;
+                    mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
+                    mem_we <= reg_exe_mem_mem_wr;
+                end
+                else begin
+                    mem_oe <= 1'b1;
+                    mem_we <= 1'b0;
                 end
             end
             else if (time_counter == 1) begin
                 mem_oe <= 1'b0;
                 mem_we <= 1'b0;
-                mem_tlb_clr <= reg_exe_mem_tlb_clr;
             end
             // reset forwarding signal
             else if (time_counter >= 2 && mem_done == 1) begin
@@ -488,7 +408,7 @@ module pipeline(
             end
 
             // stage if
-            if (stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
+            if (stall_structural_hazard == 0 && stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
                 // fetch instructions from memory
                 pc <= pc + 4;
                 reg_if_id_pc_now <= pc;

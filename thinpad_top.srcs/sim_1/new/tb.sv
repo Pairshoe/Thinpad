@@ -25,7 +25,7 @@ wire uart_dataready;
 wire uart_tbre;
 wire uart_tsre;
 
-parameter BASE_RAM_INIT_FILE = "D:\\new\\cod21-grp67\\tests\\kernel\\kernel_4M.bin"; // BaseRAM Initial File
+parameter BASE_RAM_INIT_FILE = "I:\\cod21-grp67\\tests\\kernel\\kernel_basic.bin"; // BaseRAM Initial File
 parameter EXT_RAM_INIT_FILE = "D:\\new\\cod21-grp67\\tests\\test_int\\test_ecall_timeout.bin";//ExtRAM Initial File
 
 initial begin 
