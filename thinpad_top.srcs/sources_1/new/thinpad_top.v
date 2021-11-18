@@ -268,7 +268,7 @@ module thinpad_top(
         .mem_oe         (mem_oe),
         .mem_we         (mem_we),
         .mem_tlb_clr    (mem_tlb_clr),
-        .mem_address_out    (mem_address),
+        .mem_address    (mem_address),
         .mem_data_in    (mem_data_in),
         .mem_data_out   (mem_data_out),
         .mem_done       (mem_done),
