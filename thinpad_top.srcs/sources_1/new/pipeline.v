@@ -12,7 +12,8 @@ module pipeline(
     output reg        mem_oe,
     output reg        mem_we,
     output reg        mem_tlb_clr,
-    output reg[31:0]  mem_address,
+    //output reg[31:0]  mem_address,
+    output wire[31:0] mem_address_out,
     output reg[31:0]  mem_data_in,
     input wire[31:0]  mem_data_out,
     input wire        mem_done,
@@ -190,6 +191,10 @@ module pipeline(
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
+    assign mem_address_out = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r ? pc;
+    reg[31:0] mem_address;
+    //assign mem_address_out = mem_address;
+
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -259,7 +264,7 @@ module pipeline(
                     reg_if_id_mode_data <= 2'b11; // set machine mode
                     reg_if_id_mode_wr <= 1'b1;
                     // structural hazard
-                    if (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW) begin
+                    if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
                         stall_if <= 1;
                         mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
                         mem_we <= reg_exe_mem_mem_wr;
