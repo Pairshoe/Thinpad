@@ -8,10 +8,6 @@ module decoder(
     input wire[31:0]        inst,
     input wire[31:0]        data1,
     input wire[31:0]        data2,
-    /*input wire              br_eq,
-    input wire              br_lt,
-    input wire              br_a_eqz,
-    input wire              br_b_eqz,*/
     output wire[5:0]        ext_op,
     output wire[4:0]        alu_op,
     output wire[31:0]       imm,

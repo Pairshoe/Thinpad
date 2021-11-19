@@ -92,9 +92,6 @@ module pipeline(
     // interface to branch comp
     output reg[31:0]  id_dat_a,
     output reg[31:0]  id_dat_b,
-    //output wire       br_un,
-    //input wire        br_eq,
-    //input wire        br_lt,
 
     // interface to alu
     output wire[4:0]  alu_op,
@@ -198,7 +195,8 @@ module pipeline(
     assign mem_half = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LHU || reg_exe_mem_op == `OP_SH));
     assign mem_unsigned = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU));
     assign mem_tlb_clr = (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_tlb_clr);
-    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
+    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
+        || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
     assign mem_data_in = reg_exe_mem_data_b;
 
 
