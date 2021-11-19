@@ -8,7 +8,9 @@ module pipeline(
     input wire        rst,
 
     // interface to sram and uart
-    output wire       mem_be,
+    output wire       mem_byte,
+    output wire       mem_half,
+    output wire       mem_unsigned,
     output reg        mem_oe,
     output reg        mem_we,
     output wire       mem_tlb_clr,
@@ -29,7 +31,7 @@ module pipeline(
     input wire        ins_b_select,
     input wire        ins_pc_select,
     input wire        ins_b_dat_select,
-    input wire[4:0]   ins_op,
+    input wire[5:0]   ins_op,
     input wire[4:0]   ins_alu_op,
     input wire[31:0]  ins_imm,
     input wire        ins_mem_wr,
@@ -38,6 +40,8 @@ module pipeline(
     input wire        ins_csr_reg_wr,
     input wire        ins_tlb_clr,
     input wire[3:0]   decoder_exception,
+    input wire[3:0]   ins_pred,
+    input wire[3:0]   ins_succ,
 
     // interface to csr_regfile
     output wire[11:0] csr_raddr,
@@ -88,9 +92,6 @@ module pipeline(
     // interface to branch comp
     output reg[31:0]  id_dat_a,
     output reg[31:0]  id_dat_b,
-    output wire       br_un,
-    input wire        br_eq,
-    input wire        br_lt,
 
     // interface to alu
     output wire[4:0]  alu_op,
@@ -186,13 +187,16 @@ module pipeline(
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
     assign csr_raddr = ins_csr;
-    assign br_un = 1'b0;
+    //assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
-    assign mem_be = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB));
+    assign mem_byte = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_SB));
+    assign mem_half = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LHU || reg_exe_mem_op == `OP_SH));
+    assign mem_unsigned = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU));
     assign mem_tlb_clr = (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_tlb_clr);
-    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
+    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
+        || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
     assign mem_data_in = reg_exe_mem_data_b;
 
 
@@ -387,7 +391,8 @@ module pipeline(
                 end
 
                 // structural hazard
-                if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
+                if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
+                    || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) begin
                     stall_structural_hazard <= 1;
                     mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
                     mem_we <= reg_exe_mem_mem_wr;
