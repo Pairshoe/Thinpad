@@ -60,6 +60,10 @@ module alu(
                 result = a < b ? a : b;
             end
 
+            `SLT: begin
+                result = $signed(a) < $signed(b) ? a : b;
+            end
+
             `SLTU: begin
                 result = a < b ? 1 : 0;
             end

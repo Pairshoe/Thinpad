@@ -8,14 +8,16 @@ module sram(
     input wire                                  rst,
 
     // interface to user
-    (* dont_touch = "true" *) input wire        oe,
-    (* dont_touch = "true" *) input wire        we,
+    input wire                                  oe,
+    input wire                                  we,
     // if using uart, even without 'be' set, byte input/output will be used
-    (* dont_touch = "true" *) input wire        be,
-    (* dont_touch = "true" *) input wire[31:0]  address,
-    (* dont_touch = "true" *) input wire[31:0]  data_in,
-    (* dont_touch = "true" *) output reg[31:0]  data_out,
-    (* dont_touch = "true" *) output reg        done,
+    input wire                                  byte,
+    input wire                                  half,
+    input wire                                  unsigned_,
+    input wire[31:0]                            address,
+    input wire[31:0]                            data_in,
+    output reg[31:0]                            data_out,
+    output reg                                  done,
 
     // interface to BaseRAM
     inout wire[31:0]                            base_ram_data_wire,
@@ -41,33 +43,32 @@ module sram(
     input wire                                  uart_tsre,
 
     // others
-    (* dont_touch = "true" *) input wire        tlb_clr,
-    (* dont_touch = "true" *) input wire[31:0]  satp,
-    (* dont_touch = "true" *) input wire[1:0]   mode,
-    (* dont_touch = "true" *) output wire       timeout,
-    (* dont_touch = "true" *) output wire[3:0]  exception
+    input wire                                  tlb_clr,
+    input wire[31:0]                            satp,
+    input wire[1:0]                             mode,
+    output wire                                 timeout,
+    output wire[3:0]                            exception
 );
 
     (* dont_touch = "true" *) reg               data_z;
     (* dont_touch = "true" *) reg[31:0]         reg_address;
     (* dont_touch = "true" *) reg[21:0]         reg_entry;
-    (* dont_touch = "true" *) wire              use_sram, use_base, use_ext, use_uart, 
-                                                use_uart_state, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi;
+    (* dont_touch = "true" *) wire              use_sram, use_base, use_ext, use_uart, use_uart_state, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi;
     (* dont_touch = "true" *) wire[7:0]         uart_state_data;
     (* dont_touch = "true" *) reg[31:0]         reg_mtime_lo, reg_mtime_hi, reg_mtimecmp_lo, reg_mtimecmp_hi;
     (* dont_touch = "true" *) reg[3:0]          state, uart_write_state, mtime_state;
     (* dont_touch = "true" *) reg               reg_timeout;
-    
+
     (* dont_touch = "true" *) reg[42:0]         TLBs[0:3];
 
-    assign base_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
+    assign base_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign base_ram_be_n = be ? (~(1 << address[1:0])) : 4'b0000;
+    assign base_ram_be_n = byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000);
     assign base_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
-    assign ext_ram_data_wire = data_z ? 32'bz : (be ? (data_in[7:0] << (8 * address[1:0])) : data_in);
+    assign ext_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign ext_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign ext_ram_be_n = be ? (~(1 << address[1:0])) : 4'b0000;
+    assign ext_ram_be_n = byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000);
     assign ext_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
     assign use_uart = (address == 32'h10000000);
@@ -360,18 +361,27 @@ module sram(
                     base_ram_oe_n <= 1'b1;
                     ext_ram_oe_n <= 1'b1;
                     if (use_ext) begin
-                        case({ be, address[1:0] })
-                            3'b100: begin
-                                data_out <= { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
+                        case({ byte, half, address[1:0] })
+                            4'b1000: begin
+                                data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[7:0] } : { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
                             end
-                            3'b101: begin
-                                data_out <= { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
+                            4'b1001: begin
+                                data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[15:8] } : { { 24{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:8] };
                             end
-                            3'b110: begin
-                                data_out <= { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
+                            4'b1010: begin
+                                data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[23:16] } : { { 24{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:16] };
                             end
-                            3'b111: begin
-                                data_out <= { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
+                            4'b1011: begin
+                                data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[31:24] } : { { 24{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:24] };
+                            end
+                            4'b0100: begin
+                                data_out <= unsigned_ ? { 16'h0, ext_ram_data_wire[15:0] } : { { 16{ ext_ram_data_wire[15] } }, ext_ram_data_wire[15:0] };
+                            end
+                            4'b0101: begin
+                                data_out <= unsigned_ ? { 16'h0, ext_ram_data_wire[23:8] } : { { 16{ ext_ram_data_wire[23] } }, ext_ram_data_wire[23:8] };
+                            end
+                            4'b0110: begin
+                                data_out <= unsigned_ ? { 16'h0, ext_ram_data_wire[31:16] } : { { 16{ ext_ram_data_wire[31] } }, ext_ram_data_wire[31:16] };
                             end
                             default: begin
                                 data_out <= ext_ram_data_wire;
@@ -379,18 +389,27 @@ module sram(
                         endcase
                     end
                     else begin
-                        case({ be, address[1:0] })
-                            3'b100: begin
-                                data_out <= { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
+                        case({ byte, half, address[1:0] })
+                            4'b1000: begin
+                                data_out <= unsigned_ ? { 24'h0, base_ram_data_wire[7:0] } : { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
                             end
-                            3'b101: begin
-                                data_out <= { { 24{ base_ram_data_wire[15] } }, base_ram_data_wire[15:8] };
+                            4'b1001: begin
+                                data_out <= unsigned_ ? { 24'h0, base_ram_data_wire[15:8] } : { { 24{ base_ram_data_wire[15] } }, base_ram_data_wire[15:8] };
                             end
-                            3'b110: begin
-                                data_out <= { { 24{ base_ram_data_wire[23] } }, base_ram_data_wire[23:16] };
+                            4'b1010: begin
+                                data_out <= unsigned_ ? { 24'h0, base_ram_data_wire[23:16] } : { { 24{ base_ram_data_wire[23] } }, base_ram_data_wire[23:16] };
                             end
-                            3'b111: begin
-                                data_out <= { { 24{ base_ram_data_wire[31] } }, base_ram_data_wire[31:24] };
+                            4'b1011: begin
+                                data_out <= unsigned_ ? { 24'h0, base_ram_data_wire[31:24] } : { { 24{ base_ram_data_wire[31] } }, base_ram_data_wire[31:24] };
+                            end
+                            4'b0100: begin
+                                data_out <= unsigned_ ? { 16'h0, base_ram_data_wire[15:0] } : { { 16{ base_ram_data_wire[15] } }, base_ram_data_wire[15:0] };
+                            end
+                            4'b0101: begin
+                                data_out <= unsigned_ ? { 16'h0, base_ram_data_wire[23:8] } : { { 16{ base_ram_data_wire[23] } }, base_ram_data_wire[23:8] };
+                            end
+                            4'b0110: begin
+                                data_out <= unsigned_ ? { 16'h0, base_ram_data_wire[31:16] } : { { 16{ base_ram_data_wire[31] } }, base_ram_data_wire[31:16] };
                             end
                             default: begin
                                 data_out <= base_ram_data_wire;
@@ -461,7 +480,7 @@ module sram(
                         reg_timeout <= 1'b0;
                     end
                 end
-                
+
                 `STATE_FINISHED: begin
                     mtime_state <= `STATE_IDLE;
                     if (reg_mtime_lo == { 32 { 1'b1 } }) begin
@@ -472,8 +491,9 @@ module sram(
                         reg_mtime_lo <= reg_mtime_lo + 1;
                     end
                 end
-                
+
                 default: begin
+                    mtime_state <= `STATE_IDLE;
                 end
             endcase
         end

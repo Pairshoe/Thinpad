@@ -28,7 +28,9 @@ module decoder(
     output wire             reg_wr,
     output wire             csr_reg_wr,
     output wire             tlb_clr,
-    output wire[3:0]        exception
+    output wire[3:0]        exception,
+    output reg[3:0]         pred,
+    output reg[3:0]         succ
 );
 
     wire        sign;
@@ -77,13 +79,22 @@ module decoder(
         exception_reg = `NO_EXC;
         
         case(inst[6:0])
-            7'b0000011: begin // LW, LB
+            7'b0000011: begin // LB, LH, LW, LBU, LHU
                 case(inst[14:12])
                     3'b000: begin
                         ext_op_reg = `OP_LB;
                     end
+                    3'b001: begin
+                        ext_op_reg = `OP_LH;
+                    end
                     3'b010: begin
                         ext_op_reg = `OP_LW;
+                    end
+                    3'b100: begin
+                        ext_op_reg = `OP_LBU;
+                    end
+                    3'b101: begin
+                        ext_op_reg = `OP_LHU;
                     end
                     default: begin
                         exception_reg = `ILLEGAL_INSTR_EXC;
@@ -94,10 +105,13 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b0100011: begin // SW, SB
+            7'b0100011: begin // SB, SH, SW
                 case(inst[14:12])
                     3'b000: begin
                         ext_op_reg = `OP_SB;
+                    end
+                    3'b001: begin
+                        ext_op_reg = `OP_SH;
                     end
                     3'b010: begin
                         ext_op_reg = `OP_SW;
@@ -111,7 +125,7 @@ module decoder(
                 mem_wr_reg = 1'b1;
             end
 
-            7'b0010011: begin // ADDI, ANDI, ORI, SLLI, SRLI
+            7'b0010011: begin // ADDI, ANDI, ORI, XORI, SLLI, SRLI, SRAI, SLTI, SLTIU
                 case(inst[14:12])
                     3'b000: begin
                         ext_op_reg = `OP_ADD;
@@ -120,6 +134,11 @@ module decoder(
                     end
                     3'b110: begin
                         ext_op_reg = `OP_OR;
+                        alu_op_reg = `OR;
+                        imm_reg = { sign_ext, inst[31:20] };
+                    end
+                    3'b100: begin
+                        ext_op_reg = `OP_XOR;
                         alu_op_reg = `OR;
                         imm_reg = { sign_ext, inst[31:20] };
                     end
@@ -134,9 +153,25 @@ module decoder(
                         imm_reg = { unsign_ext, inst[24:20] };
                     end
                     3'b101: begin
-                        ext_op_reg = `OP_SRL;
-                        alu_op_reg = `SRL;
+                        if (inst[30] == 0) begin
+                            ext_op_reg = `OP_SRL;
+                            alu_op_reg = `SRL;
+                        end
+                        else begin
+                            ext_op_reg = `OP_SRA;
+                            alu_op_reg = `SRA;
+                        end
                         imm_reg = { unsign_ext, inst[24:20] };
+                    end
+                    3'b010: begin
+                        ext_op_reg = `OP_SLT;
+                        alu_op_reg = `SLT;
+                        imm_reg = { sign_ext, inst[31:20] };
+                    end
+                    3'b011: begin
+                        ext_op_reg = `OP_SLT;
+                        alu_op_reg = `SLTU;
+                        imm_reg = { sign_ext, inst[31:20] };
                     end
                     default: begin
                         exception_reg = `ILLEGAL_INSTR_EXC;
@@ -146,11 +181,15 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b0110011: begin // ADD, AND, ANDN, OR, XOR, XNOR, MINU, SLTU
+            7'b0110011: begin // ADD, AND, ANDN, OR, XOR, XNOR, MINU, SLL, SRL, SRA, SLT, SLTU
                 case({ inst[31:25], inst[14:12] })
                     10'b0000000_000: begin
                         ext_op_reg = `OP_ADD;
                         alu_op_reg = `ADD;
+                    end
+                    10'b0100000_000: begin
+                        ext_op_reg = `OP_ADD;
+                        alu_op_reg = `SUB;
                     end
                     10'b0000000_110: begin
                         ext_op_reg = `OP_OR;
@@ -175,6 +214,22 @@ module decoder(
                     10'b0000101_110: begin
                         ext_op_reg = `OP_MIN;
                         alu_op_reg = `MINU;
+                    end
+                    10'b0000000_001: begin
+                        ext_op_reg = `OP_SLL;
+                        alu_op_reg = `SLL;
+                    end
+                    10'b0000000_101: begin
+                        ext_op_reg = `OP_SRL;
+                        alu_op_reg = `SRL;
+                    end
+                    10'b0100000_101: begin
+                        ext_op_reg = `OP_SRA;
+                        alu_op_reg = `SRA;
+                    end
+                    10'b0000000_010: begin
+                        ext_op_reg = `OP_SLT;
+                        alu_op_reg = `SLT;
                     end
                     10'b0000000_011: begin
                         ext_op_reg = `OP_SLT;
@@ -206,7 +261,7 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b1100011: begin // BEQ, BNE, BLT
+            7'b1100011: begin // BEQ, BNE, BLT, BGE, BLTU, BGEU
                 alu_op_reg = `ADD;
                 imm_reg = { sign_ext, inst[7], inst[30:25], inst[11:8], 1'b0 };
                 a_select_reg = 1'b1;
@@ -216,11 +271,17 @@ module decoder(
                         if(data1 == data2) begin
                             pc_select_reg = 1'b1;
                         end
+                        else begin
+                            pc_select_reg = 1'b0;
+                        end
                     end
                     3'b001: begin // BNE
                         ext_op_reg = `OP_BNE;
                         if(data1 != data2) begin
                             pc_select_reg = 1'b1;
+                        end
+                        else begin
+                            pc_select_reg = 1'b0;
                         end
                     end
                     3'b100: begin // BLT
@@ -228,11 +289,17 @@ module decoder(
                         if($signed(data1) < $signed(data2)) begin
                             pc_select_reg = 1'b1;
                         end
+                        else begin
+                            pc_select_reg = 1'b0;
+                        end
                     end
                     3'b101: begin // BGE
                         ext_op_reg = `OP_BGE;
                         if($signed(data1) >= $signed(data2)) begin
                             pc_select_reg = 1'b1;
+                        end
+                        else begin
+                            pc_select_reg = 1'b0;
                         end
                     end
                     3'b110: begin // BLTU
@@ -240,11 +307,17 @@ module decoder(
                         if(data1 < data2) begin
                             pc_select_reg = 1'b1;
                         end
+                        else begin
+                            pc_select_reg = 1'b0;
+                        end
                     end
                     3'b111: begin // BGEU
                         ext_op_reg = `OP_BGEU;
                         if(data1 >= data2) begin
                             pc_select_reg = 1'b1;
+                        end
+                        else begin
+                            pc_select_reg = 1'b0;
                         end
                     end
                     default: begin
@@ -272,7 +345,25 @@ module decoder(
                 reg_wr_reg = 1'b1;
             end
 
-            7'b1110011: begin // CSRRC, CSRRS, CSRRW, EBREAK, ECALL, MRET, SFENCE_VMA
+            7'b0001111: begin
+                case(inst[14:12])
+                    3'b000: begin
+                        ext_op_reg = `OP_FENCE;
+                        pred = inst[27:24];
+                        succ = inst[23:20];
+                    end
+                    3'b001: begin
+                        ext_op_reg = `OP_FENCE_I;
+                        pred = 4'b0000;
+                        succ = 4'b0000;
+                    end
+                    default: begin
+                        exception_reg = `ILLEGAL_INSTR_EXC;
+                    end
+                endcase
+            end
+
+            7'b1110011: begin // CSRRC, CSRRS, CSRRW, CSRRCI, CSRRSI, CSRRWI, EBREAK, ECALL, MRET, SFENCE_VMA
                 case(inst[14:12])
                     3'b000: begin // ECALL, EBREAK, MRET, SFENCE_VMA
                         case(inst[31:25])
@@ -343,11 +434,36 @@ module decoder(
                         reg_wr_reg = 1'b1;
                         csr_reg_wr_reg = 1'b1;
                     end
+                    3'b111: begin // CSRRCI
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `NANDN;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                        imm_reg = { sign_ext, inst[19:15] };
+                    end
+                    3'b110: begin // CSRRSI
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `OR;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                        imm_reg = { sign_ext, inst[19:15] };
+                    end
+                    3'b101: begin // CSRRWI
+                        ext_op_reg = `OP_CSRR;
+                        alu_op_reg = `A;
+                        mem_to_reg_reg = 2'b11;
+                        reg_wr_reg = 1'b1;
+                        csr_reg_wr_reg = 1'b1;
+                        imm_reg = { sign_ext, inst[19:15] };
+                    end
                     default: begin
                         exception_reg = `ILLEGAL_INSTR_EXC;
                     end
                 endcase
             end
+
             default: begin
                 exception_reg = `ILLEGAL_INSTR_EXC;
             end

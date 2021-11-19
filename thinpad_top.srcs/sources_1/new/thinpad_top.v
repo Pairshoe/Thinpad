@@ -39,7 +39,7 @@ module thinpad_top(
 );
 
     // interface to sram and uart
-    (* dont_touch = "true" *) wire                mem_oe, mem_we, mem_be, mem_tlb_clr;
+    (* dont_touch = "true" *) wire                mem_oe, mem_we, mem_byte, mem_half, mem_unsigned, mem_tlb_clr;
     (* dont_touch = "true" *) wire[31:0]          mem_address;
     (* dont_touch = "true" *) wire[31:0]          mem_data_in;
     (* dont_touch = "true" *) wire[31:0]          mem_data_out;
@@ -60,6 +60,7 @@ module thinpad_top(
     (* dont_touch = "true" *) wire                a_select, b_select, pc_select, mem_wr, reg_wr, csr_reg_wr;
     (* dont_touch = "true" *) wire                tlb_clr;
     (* dont_touch = "true" *) wire[3:0]           decoder_exception;
+    (* dont_touch = "true" *) wire[3:0]           pred, succ;
 
     // interface to br_comparator
     (* dont_touch = "true" *) wire[31:0]          id_dat_a, id_dat_b;
@@ -118,7 +119,9 @@ module thinpad_top(
         .clk            (clk_50M),
         .rst            (reset_btn),
 
-        .be             (mem_be),
+        .byte           (mem_byte),
+        .half           (mem_half),
+        .unsigned_      (mem_unsigned),
         .oe             (mem_oe),
         .we             (mem_we),
         .tlb_clr        (mem_tlb_clr),
@@ -178,7 +181,9 @@ module thinpad_top(
         .reg_wr         (reg_wr),
         .csr_reg_wr     (csr_reg_wr),
         .tlb_clr        (tlb_clr),
-        .exception      (decoder_exception)
+        .exception      (decoder_exception),
+        .pred           (pred),
+        .succ           (succ)
     );
 
     /*br_comparator _br_comparator(
@@ -266,7 +271,9 @@ module thinpad_top(
         .rst            (reset_btn),
 
         // interface to sram and uart
-        .mem_be         (mem_be),
+        .mem_byte       (mem_byte),
+        .mem_half       (mem_half),
+        .mem_unsigned   (mem_unsigned),
         .mem_oe         (mem_oe),
         .mem_we         (mem_we),
         .mem_tlb_clr    (mem_tlb_clr),
@@ -296,6 +303,8 @@ module thinpad_top(
         .ins_csr_reg_wr     (csr_reg_wr),
         .ins_tlb_clr        (tlb_clr),
         .decoder_exception  (decoder_exception),
+        .ins_pred           (pred),
+        .ins_succ           (succ),
 
         // interface to csr_regfile
         .csr_raddr      (csr_raddr),
