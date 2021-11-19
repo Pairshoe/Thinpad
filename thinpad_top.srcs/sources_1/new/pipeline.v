@@ -29,7 +29,7 @@ module pipeline(
     input wire        ins_b_select,
     input wire        ins_pc_select,
     input wire        ins_b_dat_select,
-    input wire[4:0]   ins_op,
+    input wire[5:0]   ins_op,
     input wire[4:0]   ins_alu_op,
     input wire[31:0]  ins_imm,
     input wire        ins_mem_wr,
@@ -88,9 +88,9 @@ module pipeline(
     // interface to branch comp
     output reg[31:0]  id_dat_a,
     output reg[31:0]  id_dat_b,
-    output wire       br_un,
-    input wire        br_eq,
-    input wire        br_lt,
+    //output wire       br_un,
+    //input wire        br_eq,
+    //input wire        br_lt,
 
     // interface to alu
     output wire[4:0]  alu_op,
@@ -186,7 +186,7 @@ module pipeline(
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
     assign csr_raddr = ins_csr;
-    assign br_un = 1'b0;
+    //assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;

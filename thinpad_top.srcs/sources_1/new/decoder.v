@@ -6,11 +6,13 @@
 
 module decoder(
     input wire[31:0]        inst,
-    input wire              br_eq,
+    input wire[31:0]        data1,
+    input wire[31:0]        data2,
+    /*input wire              br_eq,
     input wire              br_lt,
     input wire              br_a_eqz,
-    input wire              br_b_eqz,
-    output wire[4:0]        ext_op,
+    input wire              br_b_eqz,*/
+    output wire[5:0]        ext_op,
     output wire[4:0]        alu_op,
     output wire[31:0]       imm,
     output wire             b_select,
@@ -211,26 +213,38 @@ module decoder(
                 case(inst[14:12])
                     3'b000: begin // BEQ
                         ext_op_reg = `OP_BEQ;
-                        if(br_eq == 1'b1) begin
+                        if(data1 == data2) begin
                             pc_select_reg = 1'b1;
-                        end
-                        else begin
                         end
                     end
                     3'b001: begin // BNE
                         ext_op_reg = `OP_BNE;
-                        if(br_eq == 1'b0) begin
+                        if(data1 != data2) begin
                             pc_select_reg = 1'b1;
-                        end
-                        else begin
                         end
                     end
                     3'b100: begin // BLT
                         ext_op_reg = `OP_BLT;
-                        if(br_lt == 1'b1) begin
+                        if($signed(data1) < $signed(data2)) begin
                             pc_select_reg = 1'b1;
                         end
-                        else begin
+                    end
+                    3'b101: begin // BGE
+                        ext_op_reg = `OP_BGE;
+                        if($signed(data1) >= $signed(data2)) begin
+                            pc_select_reg = 1'b1;
+                        end
+                    end
+                    3'b110: begin // BLTU
+                        ext_op_reg = `OP_BLTU;
+                        if(data1 < data2) begin
+                            pc_select_reg = 1'b1;
+                        end
+                    end
+                    3'b111: begin // BGEU
+                        ext_op_reg = `OP_BGEU;
+                        if(data1 >= data2) begin
+                            pc_select_reg = 1'b1;
                         end
                     end
                     default: begin
@@ -290,7 +304,7 @@ module decoder(
                             end
                             7'b0001001: begin // SFENCE_VMA
                                 ext_op_reg = `OP_SFENCE_VMA;
-                                if (br_a_eqz && br_b_eqz) begin
+                                if (data1 == 32'h00000000 && data2 == 32'h00000000) begin
                                     tlb_clr_reg = 1'b1;
                                 end
                                 else begin
