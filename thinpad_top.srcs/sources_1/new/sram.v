@@ -61,8 +61,8 @@ module sram(
 
     (* dont_touch = "true" *) reg[42:0]         TLBs[0:3];
 
-    (* dont_touch = "true" *) reg[31:0]         cache_addr[0:31], cache_data[0:31];
-    (* dont_touch = "true" *) reg               valid[0:31];
+    //(* dont_touch = "true" *) reg[31:0]         cache_addr[0:31], cache_data[0:31];
+    //(* dont_touch = "true" *) reg               valid[0:31];
 
     assign base_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
