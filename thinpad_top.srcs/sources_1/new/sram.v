@@ -386,7 +386,13 @@ module sram(
                     ext_ram_we_n <= 1'b1;
                     done <= 1'b1;
                     if (cache_addr[address[6:2]] == address) begin
-                        valid[address[6:2]] <= 0;
+                        if (byte == 0 && half == 0) begin
+                            cache_addr[address[6:2]] <= address;
+                            cahce_data[address[6:2]] <= data_in;
+                        end
+                        else begin
+                            valid[address[6:2]] <= 0;
+                        end
                     end
                 end
 
