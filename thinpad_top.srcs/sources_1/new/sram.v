@@ -395,6 +395,8 @@ module sram(
 
                 `STATE_SRAM_READ: begin
                     state <= `STATE_FINISHED;
+                    base_ram_oe_n <= 1'b1;
+                    ext_ram_oe_n <= 1'b1;
                     valid[address[6:2]] <= 1;
                     cache_addr[address[6:2]] <= address;
                     cache_data[address[6:2]] <= ext_ram_data_wire;
@@ -489,8 +491,6 @@ module sram(
                 `STATE_FINISHED: begin
                     state <= `STATE_IDLE;
                     data_z <= 1'b0;
-                    base_ram_oe_n <= 1'b1;
-                    ext_ram_oe_n <= 1'b1;
                 end
 
                 default: begin
