@@ -66,12 +66,12 @@ module sram(
 
     assign base_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign base_ram_be_n = /*(state == `STATE_SRAM_READ) ? 4'b0000 : */(byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
+    assign base_ram_be_n = (state == `STATE_SRAM_READ) ? 4'b0000 : (byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
     assign base_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
     assign ext_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign ext_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign ext_ram_be_n = /*(state == `STATE_SRAM_READ) ? 4'b0000 : */(byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
+    assign ext_ram_be_n = (state == `STATE_SRAM_READ) ? 4'b0000 : (byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
     assign ext_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
     assign use_uart = (address == 32'h10000000);
