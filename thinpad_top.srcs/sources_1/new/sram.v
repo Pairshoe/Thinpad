@@ -440,6 +440,9 @@ module sram(
                         end
                     endcase*/
                     //if (use_ext) begin
+                    valid[address[6:2]] <= 1;
+                    cache_addr[address[6:2]] <= address;
+                    cache_data[address[6:2]] <= sram_data_wire;
                     case({ byte, half })
                         2'b10: begin
                             data_out <= unsigned_ ? ((sram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((sram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
@@ -449,9 +452,6 @@ module sram(
                         end
                         default: begin
                             data_out <= sram_data_wire;
-                            valid[address[6:2]] <= 1;
-                            cache_addr[address[6:2]] <= address;
-                            cache_data[address[6:2]] <= sram_data_wire;
                         end
                     endcase
                     /*end
