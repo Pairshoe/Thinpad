@@ -385,7 +385,7 @@ module sram(
                     base_ram_we_n <= 1'b1;
                     ext_ram_we_n <= 1'b1;
                     done <= 1'b1;
-                    if (cache_addr[address[6:2]] != address) begin
+                    if (cache_addr[address[6:2]] == address) begin
                         valid[address[6:2]] <= 0;
                     end
                 end
