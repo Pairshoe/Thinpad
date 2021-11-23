@@ -388,7 +388,7 @@ module sram(
                     if (cache_addr[address[6:2]] == address) begin
                         if (byte == 0 && half == 0) begin
                             cache_addr[address[6:2]] <= address;
-                            cahce_data[address[6:2]] <= data_in;
+                            cache_data[address[6:2]] <= data_in;
                         end
                         else begin
                             valid[address[6:2]] <= 0;
