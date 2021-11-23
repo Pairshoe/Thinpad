@@ -102,92 +102,96 @@ module pipeline(
 );
 
     // regs between if and id
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_if_id_pc_now;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_if_id_instr;
-    /*(* dont_touch = "true" *)*/ reg        reg_if_id_abort;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_if_id_mepc_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_if_id_mepc_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_if_id_mcause_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_if_id_mcause_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_if_id_mstatus_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_if_id_mstatus_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_if_id_mode_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_if_id_mode_wr;
+    reg[31:0]         reg_if_id_pc_now;
+    reg[31:0]         reg_if_id_instr;
+    reg               reg_if_id_abort;
+    reg[31:0]         reg_if_id_mepc_data;
+    reg               reg_if_id_mepc_wr;
+    reg[31:0]         reg_if_id_mcause_data;
+    reg               reg_if_id_mcause_wr;
+    reg[31:0]         reg_if_id_mstatus_data;
+    reg               reg_if_id_mstatus_wr;
+    reg[1:0]          reg_if_id_mode_data;
+    reg               reg_if_id_mode_wr;
+    reg               reg_if_id_jump;
 
     // regs between id and exe
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_pc_now;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_data_a, reg_id_exe_data_b;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_id_exe_reg_d;
-    /*(* dont_touch = "true" *)*/ reg[11:0]  reg_id_exe_csr;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_id_exe_op;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_id_exe_alu_op;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_imm;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_mem_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_id_exe_mem_to_reg;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_csr_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_abort;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_mepc_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_mepc_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_mcause_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_mcause_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_id_exe_mstatus_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_mstatus_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_id_exe_mode_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_mode_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_id_exe_tlb_clr;
+    reg[31:0]         reg_id_exe_pc_now;
+    reg[31:0]         reg_id_exe_data_a, reg_id_exe_data_b;
+    reg[4:0]          reg_id_exe_reg_d;
+    reg[11:0]         reg_id_exe_csr;
+    reg               reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select;
+    reg[4:0]          reg_id_exe_op;
+    reg[4:0]          reg_id_exe_alu_op;
+    reg[31:0]         reg_id_exe_imm;
+    reg               reg_id_exe_mem_wr;
+    reg[1:0]          reg_id_exe_mem_to_reg;
+    reg               reg_id_exe_reg_wr;
+    reg               reg_id_exe_csr_reg_wr;
+    reg               reg_id_exe_abort;
+    reg[31:0]         reg_id_exe_mepc_data;
+    reg               reg_id_exe_mepc_wr;
+    reg[31:0]         reg_id_exe_mcause_data;
+    reg               reg_id_exe_mcause_wr;
+    reg[31:0]         reg_id_exe_mstatus_data;
+    reg               reg_id_exe_mstatus_wr;
+    reg[1:0]          reg_id_exe_mode_data;
+    reg               reg_id_exe_mode_wr;
+    reg               reg_id_exe_tlb_clr;
+    reg               reg_id_exe_jump;
 
     // regs between exe and mem
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_exe_mem_pc_now;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_exe_mem_data_r, reg_exe_mem_data_b;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_pc_select;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_exe_mem_reg_d;
-    /*(* dont_touch = "true" *)*/ reg[11:0]  reg_exe_mem_csr;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_exe_mem_op;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_mem_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_exe_mem_mem_to_reg;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_csr_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_abort;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_exe_mem_mepc_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_mepc_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_exe_mem_mcause_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_mcause_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_exe_mem_mstatus_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_mstatus_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_exe_mem_mode_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_mode_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_exe_mem_tlb_clr;
+    reg[31:0]         reg_exe_mem_pc_now;
+    reg[31:0]         reg_exe_mem_data_r, reg_exe_mem_data_b;
+    reg               reg_exe_mem_pc_select;
+    reg[4:0]          reg_exe_mem_reg_d;
+    reg[11:0]         reg_exe_mem_csr;
+    reg[4:0]          reg_exe_mem_op;
+    reg               reg_exe_mem_mem_wr;
+    reg[1:0]          reg_exe_mem_mem_to_reg;
+    reg               reg_exe_mem_reg_wr;
+    reg               reg_exe_mem_csr_reg_wr;
+    reg               reg_exe_mem_abort;
+    reg[31:0]         reg_exe_mem_mepc_data;
+    reg               reg_exe_mem_mepc_wr;
+    reg[31:0]         reg_exe_mem_mcause_data;
+    reg               reg_exe_mem_mcause_wr;
+    reg[31:0]         reg_exe_mem_mstatus_data;
+    reg               reg_exe_mem_mstatus_wr;
+    reg[1:0]          reg_exe_mem_mode_data;
+    reg               reg_exe_mem_mode_wr;
+    reg               reg_exe_mem_tlb_clr;
+    reg               reg_exe_mem_jump;
 
     // regs between mem and wb
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_mem_wb_data;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_mem_wb_csr_data;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_mem_wb_reg_d;
-    /*(* dont_touch = "true" *)*/ reg[11:0]  reg_mem_wb_csr;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   reg_mem_wb_op;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_csr_reg_wr;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_abort;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_mem_wb_mepc_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_mepc_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_mem_wb_mcause_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_mcause_wr;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  reg_mem_wb_mstatus_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_mstatus_wr;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   reg_mem_wb_mode_data;
-    /*(* dont_touch = "true" *)*/ reg        reg_mem_wb_mode_wr;
+    reg[31:0]         reg_mem_wb_data;
+    reg[31:0]         reg_mem_wb_csr_data;
+    reg[4:0]          reg_mem_wb_reg_d;
+    reg[11:0]         reg_mem_wb_csr;
+    reg[4:0]          reg_mem_wb_op;
+    reg               reg_mem_wb_reg_wr;
+    reg               reg_mem_wb_csr_reg_wr;
+    reg               reg_mem_wb_abort;
+    reg[31:0]         reg_mem_wb_mepc_data;
+    reg               reg_mem_wb_mepc_wr;
+    reg[31:0]         reg_mem_wb_mcause_data;
+    reg               reg_mem_wb_mcause_wr;
+    reg[31:0]         reg_mem_wb_mstatus_data;
+    reg               reg_mem_wb_mstatus_wr;
+    reg[1:0]          reg_mem_wb_mode_data;
+    reg               reg_mem_wb_mode_wr;
 
-    /*(* dont_touch = "true" *)*/ reg[3:0]   stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
-    /*(* dont_touch = "true" *)*/ reg[31:0]  pc;
-    /*(* dont_touch = "true" *)*/ reg[4:0]   time_counter;
-    /*(* dont_touch = "true" *)*/ reg[1:0]   forwarding_select_a, forwarding_select_b;
+    reg[3:0]          stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
+    reg[31:0]         pc;
+    reg[4:0]          time_counter;
+    reg[1:0]          forwarding_select_a, forwarding_select_b;
+    reg[31:0]         jump_src[0:31], jump_dst[0:31];
+    reg[31:0]         valid;
 
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
     assign csr_raddr = ins_csr;
-    //assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
@@ -198,7 +202,6 @@ module pipeline(
     assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
         || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
     assign mem_data_in = reg_exe_mem_data_b;
-
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -222,10 +225,6 @@ module pipeline(
         end
     end
 
-    reg[31:0] jump_src[0:31], jump_dst[0:31];
-    reg reg_if_id_jump, reg_id_exe_jump, reg_exe_mem_jump;
-    reg[31:0] valid;
-
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             // reset program counter
@@ -244,6 +243,7 @@ module pipeline(
             reg_if_id_abort <= 1;  reg_id_exe_abort <= 1;  reg_exe_mem_abort <= 1;  reg_mem_wb_abort <= 1;
             // reset forwarding select
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
+            // reset valid
             valid <= 32'b0;
         end
         else begin
@@ -276,12 +276,6 @@ module pipeline(
                 // control hazard
                 else if (stall_mem == 0 && reg_exe_mem_abort == 0 && ((reg_exe_mem_pc_select && reg_exe_mem_jump == 1'b0) ||
                     (reg_exe_mem_jump == 1'b1 && jump_dst[reg_exe_mem_pc_now[6:2]] != ((reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r)))) begin
-                    /*if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
-                        pc <= reg_exe_mem_data_r & 32'hfffffffe;
-                    end
-                    else begin
-                        pc <= reg_exe_mem_data_r;
-                    end*/
                     pc <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
