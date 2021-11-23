@@ -397,8 +397,8 @@ module sram(
                     state <= `STATE_FINISHED;
                     base_ram_oe_n <= 1'b1;
                     ext_ram_oe_n <= 1'b1;
-                    valid[address[6:2]] <= 1;
-                    cache_addr[address[6:2]] <= address;
+                    /*valid[address[6:2]] <= 1;
+                    cache_addr[address[6:2]] <= address;*/
                     if (use_ext) begin
                         case({ byte, half, address[1:0] })
                             4'b1000: begin
