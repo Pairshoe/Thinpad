@@ -7,8 +7,8 @@
 `define STATE_SRAM_READ_PAGE_1      4'b0110
 `define STATE_SRAM_READ_PAGE_2      4'b0111
 `define STATE_SRAM_READ             4'b1000
-`define STATE_UART_WRITE            4'b1001
-`define STATE_UART_READ             4'b1010
+`define STATE_UART_READ_WRITE       4'b1001
+//`define STATE_UART_READ             4'b1010
 `define STATE_FINISHED              4'b1011
 
 `define UART_ADDR                   32'h10000000

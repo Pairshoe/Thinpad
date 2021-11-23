@@ -183,7 +183,7 @@ module sram(
                                 end
                             end
                             6'b010000: begin
-                                state <= `STATE_UART_WRITE;
+                                state <= `STATE_UART_READ_WRITE;
                                 uart_wrn <= 1'b0;
                                 done <= 1'b0;
                             end
@@ -259,7 +259,16 @@ module sram(
                                 else begin
                                     if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
                                         state <= `STATE_FINISHED;
-                                        case({ byte, half })
+                                        if (byte == 1) begin
+                                            data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
+                                        end
+                                        else if (half == 1) begin
+                                            data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >>> 16) : ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >> 16);
+                                        end
+                                        else begin
+                                            data_out <= cache_data[address[6:2]];
+                                        end
+                                        /*case({ byte, half })
                                             2'b10: begin
                                                 data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
                                             end
@@ -269,7 +278,7 @@ module sram(
                                             default: begin
                                                 data_out <= cache_data[address[6:2]];
                                             end
-                                        endcase
+                                        endcase*/
                                     end
                                     else begin
                                         state <= `STATE_SRAM_READ;
@@ -282,7 +291,7 @@ module sram(
                                 end
                             end
                             7'b0100000: begin
-                                state <= `STATE_UART_READ;
+                                state <= `STATE_UART_READ_WRITE;
                                 data_z <= 1'b1;
                                 uart_rdn <= 1'b0;
                                 done <= 1'b0;
@@ -417,7 +426,112 @@ module sram(
                                 cache_data[address[6:2]] <= ext_ram_data_wire;
                             end
                         endcase
-                        /*case({ byte, half, address[1:0] })
+                    end
+                    else begin
+                        case({byte, half})
+                            2'b10: begin
+                                data_out <= unsigned_ ? ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
+                            end
+                            2'b01: begin
+                                data_out <= unsigned_ ? ((base_ram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((base_ram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
+                            end
+                            default: begin
+                                data_out <= base_ram_data_wire;
+                                valid[address[6:2]] <= 1;
+                                cache_addr[address[6:2]] <= address;
+                                cache_data[address[6:2]] <= base_ram_data_wire;
+                            end
+                        endcase
+                    end
+                    done <= 1'b1;
+                end
+
+                `STATE_UART_READ_WRITE: begin
+                    state <= `STATE_FINISHED;
+                    data_out <= { 24'h000000, base_ram_data_wire[7:0] };
+                    uart_rdn <= 1'b1;
+                    uart_wrn <= 1'b1;
+                    done <= 1'b1;
+                end
+
+                /*`STATE_UART_READ: begin
+                    state <= `STATE_FINISHED;
+                    data_out <= { 24'h000000, base_ram_data_wire[7:0] };
+                    uart_rdn <= 1'b1;
+                    done <= 1'b1;
+                end*/
+
+                default: begin
+                    state <= `STATE_IDLE;
+                    data_z <= 1'b0;
+                end
+
+                /*default: begin
+                    state <= `STATE_IDLE;
+                end*/
+            endcase
+
+            case(uart_write_state)
+                `STATE_IDLE: begin
+                    if (uart_tbre == 0) begin
+                        uart_write_state <= `STATE_UART_READ_WRITE;
+                    end
+                end
+
+                `STATE_UART_READ_WRITE: begin
+                    if (uart_tsre == 0) begin
+                        uart_write_state <= `STATE_FINISHED;
+                    end
+                end
+
+                default: begin
+                    if (uart_tsre == 1) begin
+                        uart_write_state <= `STATE_IDLE;
+                    end
+                end
+
+                /*default: begin
+                    uart_write_state <= `STATE_IDLE;
+                end*/
+            endcase
+
+            case(mtime_state) 
+                `STATE_IDLE: begin
+                    if (mode == 2'b00) begin
+                        mtime_state <= `STATE_FINISHED;
+                        if ((reg_mtimecmp_hi < reg_mtime_hi) || (reg_mtime_hi == reg_mtimecmp_hi && reg_mtimecmp_lo < reg_mtime_lo)) begin
+                            reg_timeout <= 1'b1;
+                            reg_mtime_lo <= 32'b0;
+                            reg_mtime_hi <= 32'b0;
+                        end
+                    end
+                    else begin
+                        reg_timeout <= 1'b0;
+                    end
+                end
+
+                default: begin
+                    mtime_state <= `STATE_IDLE;
+                    if (reg_mtime_lo == { 32 { 1'b1 } }) begin
+                        reg_mtime_lo <= 32'b0;
+                        reg_mtime_hi <= reg_mtime_hi + 1;
+                    end
+                    else begin
+                        reg_mtime_lo <= reg_mtime_lo + 1;
+                    end
+                end
+
+                /*default: begin
+                    mtime_state <= `STATE_IDLE;
+                end*/
+            endcase
+        end
+    end
+
+endmodule
+
+
+/*case({ byte, half, address[1:0] })
                             4'b1000: begin
                                 data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[7:0] } : { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
                                 //cache_data[address[6:2]] <= ext_ram_data_wire;
@@ -452,22 +566,7 @@ module sram(
                                 //cache_data[address[6:2]] <= ext_ram_data_wire;
                             end
                         endcase*/
-                    end
-                    else begin
-                        case({byte, half})
-                            2'b10: begin
-                                data_out <= unsigned_ ? ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
-                            end
-                            2'b01: begin
-                                data_out <= unsigned_ ? ((base_ram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((base_ram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
-                            end
-                            default: begin
-                                data_out <= base_ram_data_wire;
-                                valid[address[6:2]] <= 1;
-                                cache_addr[address[6:2]] <= address;
-                                cache_data[address[6:2]] <= base_ram_data_wire;
-                            end
-                        endcase
+
                         /*if (byte == 1) begin
                             data_out <= unsigned_ ? ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
                         end
@@ -510,94 +609,10 @@ module sram(
                                 data_out <= base_ram_data_wire;
                             end
                         endcase*/
-                    end
-                    done <= 1'b1;
-                end
 
-                `STATE_UART_WRITE: begin
-                    state <= `STATE_FINISHED;
-                    uart_wrn <= 1'b1;
-                    done <= 1'b1;
-                end
-
-                `STATE_UART_READ: begin
-                    state <= `STATE_FINISHED;
-                    data_out <= { 24'h000000, base_ram_data_wire[7:0] };
-                    uart_rdn <= 1'b1;
-                    done <= 1'b1;
-                end
-
-                `STATE_FINISHED: begin
-                    state <= `STATE_IDLE;
-                    data_z <= 1'b0;
-                    /*if (write_cache == 1 && byte == 0 && half == 0) begin
+                        /*if (write_cache == 1 && byte == 0 && half == 0) begin
                         valid[address[6:2]] <= 1;
                         cache_addr[address[6:2]] <= address;
                         cache_data[address[6:2]] <= data_out;
                         write_cache <= 0;
                     end*/
-                end
-
-                default: begin
-                    state <= `STATE_IDLE;
-                end
-            endcase
-
-            case(uart_write_state)
-                `STATE_IDLE: begin
-                    if (uart_tbre == 0) begin
-                        uart_write_state <= `STATE_UART_WRITE;
-                    end
-                end
-
-                `STATE_UART_WRITE: begin
-                    if (uart_tsre == 0) begin
-                        uart_write_state <= `STATE_FINISHED;
-                    end
-                end
-
-                `STATE_FINISHED: begin
-                    if (uart_tsre == 1) begin
-                        uart_write_state <= `STATE_IDLE;
-                    end
-                end
-
-                default: begin
-                    uart_write_state <= `STATE_IDLE;
-                end
-            endcase
-
-            case(mtime_state) 
-                `STATE_IDLE: begin
-                    if (mode == 2'b00) begin
-                        mtime_state <= `STATE_FINISHED;
-                        if ((reg_mtimecmp_hi < reg_mtime_hi) || (reg_mtime_hi == reg_mtimecmp_hi && reg_mtimecmp_lo < reg_mtime_lo)) begin
-                            reg_timeout <= 1'b1;
-                            reg_mtime_lo <= 32'b0;
-                            reg_mtime_hi <= 32'b0;
-                        end
-                    end
-                    else begin
-                        reg_timeout <= 1'b0;
-                    end
-                end
-
-                `STATE_FINISHED: begin
-                    mtime_state <= `STATE_IDLE;
-                    if (reg_mtime_lo == { 32 { 1'b1 } }) begin
-                        reg_mtime_lo <= 32'b0;
-                        reg_mtime_hi <= reg_mtime_hi + 1;
-                    end
-                    else begin
-                        reg_mtime_lo <= reg_mtime_lo + 1;
-                    end
-                end
-
-                default: begin
-                    mtime_state <= `STATE_IDLE;
-                end
-            endcase
-        end
-    end
-
-endmodule
