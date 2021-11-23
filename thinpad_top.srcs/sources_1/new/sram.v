@@ -272,7 +272,7 @@ module sram(
                                 else begin
                                     if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
                                         state <= `STATE_FINISHED;
-                                        if (byte == 1) begin
+                                        /*if (byte == 1) begin
                                             data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
                                         end
                                         else if (half == 1) begin
@@ -280,8 +280,8 @@ module sram(
                                         end
                                         else begin
                                             data_out <= cache_data[address[6:2]];
-                                        end
-                                        /*case({ byte, half })
+                                        end*/
+                                        case({ byte, half })
                                             2'b10: begin
                                                 data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
                                             end
@@ -291,7 +291,7 @@ module sram(
                                             default: begin
                                                 data_out <= cache_data[address[6:2]];
                                             end
-                                        endcase*/
+                                        endcase
                                     end
                                     else begin
                                         state <= `STATE_SRAM_READ;
@@ -434,20 +434,20 @@ module sram(
                         end
                     endcase*/
                     //if (use_ext) begin
-                        case({byte, half})
-                            2'b10: begin
-                                data_out <= unsigned_ ? ((sram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((sram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
-                            end
-                            2'b01: begin
-                                data_out <= unsigned_ ? ((sram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((sram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
-                            end
-                            default: begin
-                                data_out <= sram_data_wire;
-                                valid[address[6:2]] <= 1;
-                                cache_addr[address[6:2]] <= address;
-                                cache_data[address[6:2]] <= sram_data_wire;
-                            end
-                        endcase
+                    case({ byte, half })
+                        2'b10: begin
+                            data_out <= unsigned_ ? ((sram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((sram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
+                        end
+                        2'b01: begin
+                            data_out <= unsigned_ ? ((sram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((sram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
+                        end
+                        default: begin
+                            data_out <= sram_data_wire;
+                            valid[address[6:2]] <= 1;
+                            cache_addr[address[6:2]] <= address;
+                            cache_data[address[6:2]] <= sram_data_wire;
+                        end
+                    endcase
                     /*end
                     else begin
                         case({byte, half})
