@@ -66,12 +66,12 @@ module sram(
 
     assign base_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign base_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign base_ram_be_n = (state == `STATE_SRAM_READ) ? 4'b0000 : (byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
+    assign base_ram_be_n = /*(state == `STATE_SRAM_READ) ? 4'b0000 : */(byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
     assign base_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
     assign ext_ram_data_wire = data_z ? 32'bz : (byte ? (data_in[7:0] << (8 * address[1:0])) : (half ? (data_in[15:0] << (8 * address[1:0])) : data_in));
     assign ext_ram_addr = (satp[31] == 1 && mode == 2'b00) ? reg_address[21:2] : address[21:2];
-    assign ext_ram_be_n = (state == `STATE_SRAM_READ) ? 4'b0000 : (byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
+    assign ext_ram_be_n = /*(state == `STATE_SRAM_READ) ? 4'b0000 : */(byte ? (~(1'b1 << address[1:0])) : (half ? (~(2'b11 << address[1:0])) : 4'b0000));
     assign ext_ram_ce_n = (use_sram == 1) ? 0 : 1;
 
     assign use_uart = (address == 32'h10000000);
@@ -398,10 +398,7 @@ module sram(
                     state <= `STATE_FINISHED;
                     base_ram_oe_n <= 1'b1;
                     ext_ram_oe_n <= 1'b1;
-                    valid[address[6:2]] <= 1;
-                    cache_addr[address[6:2]] <= address;
                     if (use_ext) begin
-                        cache_data[address[6:2]] <= ext_ram_data_wire;
                         case({ byte, half, address[1:0] })
                             4'b1000: begin
                                 data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[7:0] } : { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
@@ -433,6 +430,9 @@ module sram(
                             end
                             default: begin
                                 data_out <= ext_ram_data_wire;
+                                valid[address[6:2]] <= 1;
+                                cache_addr[address[6:2]] <= address;
+                                cache_data[address[6:2]] <= ext_ram_data_wire;
                                 //cache_data[address[6:2]] <= ext_ram_data_wire;
                             end
                         endcase
@@ -470,7 +470,9 @@ module sram(
                             end
                             default: begin
                                 data_out <= base_ram_data_wire;
-                                //cache_data[address[6:2]] <= base_ram_data_wire;
+                                valid[address[6:2]] <= 1;
+                                cache_addr[address[6:2]] <= address;
+                                cache_data[address[6:2]] <= base_ram_data_wire;
                             end
                         endcase
                     end
