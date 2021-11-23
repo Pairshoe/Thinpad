@@ -8,7 +8,9 @@ module pipeline(
     input wire        rst,
 
     // interface to sram and uart
-    output wire       mem_be,
+    output wire       mem_byte,
+    output wire       mem_half,
+    output wire       mem_unsigned,
     output reg        mem_oe,
     output reg        mem_we,
     output wire       mem_tlb_clr,
@@ -29,7 +31,7 @@ module pipeline(
     input wire        ins_b_select,
     input wire        ins_pc_select,
     input wire        ins_b_dat_select,
-    input wire[4:0]   ins_op,
+    input wire[5:0]   ins_op,
     input wire[4:0]   ins_alu_op,
     input wire[31:0]  ins_imm,
     input wire        ins_mem_wr,
@@ -38,6 +40,8 @@ module pipeline(
     input wire        ins_csr_reg_wr,
     input wire        ins_tlb_clr,
     input wire[3:0]   decoder_exception,
+    input wire[3:0]   ins_pred,
+    input wire[3:0]   ins_succ,
 
     // interface to csr_regfile
     output wire[11:0] csr_raddr,
@@ -88,9 +92,6 @@ module pipeline(
     // interface to branch comp
     output reg[31:0]  id_dat_a,
     output reg[31:0]  id_dat_b,
-    output wire       br_un,
-    input wire        br_eq,
-    input wire        br_lt,
 
     // interface to alu
     output wire[4:0]  alu_op,
@@ -101,100 +102,106 @@ module pipeline(
 );
 
     // regs between if and id
-    (* dont_touch = "true" *) reg[31:0]  reg_if_id_pc_now;
-    (* dont_touch = "true" *) reg[31:0]  reg_if_id_instr;
-    (* dont_touch = "true" *) reg        reg_if_id_abort;
-    (* dont_touch = "true" *) reg[31:0]  reg_if_id_mepc_data;
-    (* dont_touch = "true" *) reg        reg_if_id_mepc_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_if_id_mcause_data;
-    (* dont_touch = "true" *) reg        reg_if_id_mcause_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_if_id_mstatus_data;
-    (* dont_touch = "true" *) reg        reg_if_id_mstatus_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_if_id_mode_data;
-    (* dont_touch = "true" *) reg        reg_if_id_mode_wr;
+    reg[31:0]         reg_if_id_pc_now;
+    reg[31:0]         reg_if_id_instr;
+    reg               reg_if_id_abort;
+    reg[31:0]         reg_if_id_mepc_data;
+    reg               reg_if_id_mepc_wr;
+    reg[31:0]         reg_if_id_mcause_data;
+    reg               reg_if_id_mcause_wr;
+    reg[31:0]         reg_if_id_mstatus_data;
+    reg               reg_if_id_mstatus_wr;
+    reg[1:0]          reg_if_id_mode_data;
+    reg               reg_if_id_mode_wr;
+    reg               reg_if_id_jump;
 
     // regs between id and exe
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_pc_now;
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_data_a, reg_id_exe_data_b;
-    (* dont_touch = "true" *) reg[4:0]   reg_id_exe_reg_d;
-    (* dont_touch = "true" *) reg[11:0]  reg_id_exe_csr;
-    (* dont_touch = "true" *) reg        reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select;
-    (* dont_touch = "true" *) reg[4:0]   reg_id_exe_op;
-    (* dont_touch = "true" *) reg[4:0]   reg_id_exe_alu_op;
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_imm;
-    (* dont_touch = "true" *) reg        reg_id_exe_mem_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_id_exe_mem_to_reg;
-    (* dont_touch = "true" *) reg        reg_id_exe_reg_wr;
-    (* dont_touch = "true" *) reg        reg_id_exe_csr_reg_wr;
-    (* dont_touch = "true" *) reg        reg_id_exe_abort;
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_mepc_data;
-    (* dont_touch = "true" *) reg        reg_id_exe_mepc_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_mcause_data;
-    (* dont_touch = "true" *) reg        reg_id_exe_mcause_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_id_exe_mstatus_data;
-    (* dont_touch = "true" *) reg        reg_id_exe_mstatus_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_id_exe_mode_data;
-    (* dont_touch = "true" *) reg        reg_id_exe_mode_wr;
-    (* dont_touch = "true" *) reg        reg_id_exe_tlb_clr;
+    reg[31:0]         reg_id_exe_pc_now;
+    reg[31:0]         reg_id_exe_data_a, reg_id_exe_data_b;
+    reg[4:0]          reg_id_exe_reg_d;
+    reg[11:0]         reg_id_exe_csr;
+    reg               reg_id_exe_a_select, reg_id_exe_b_select, reg_id_exe_pc_select;
+    reg[4:0]          reg_id_exe_op;
+    reg[4:0]          reg_id_exe_alu_op;
+    reg[31:0]         reg_id_exe_imm;
+    reg               reg_id_exe_mem_wr;
+    reg[1:0]          reg_id_exe_mem_to_reg;
+    reg               reg_id_exe_reg_wr;
+    reg               reg_id_exe_csr_reg_wr;
+    reg               reg_id_exe_abort;
+    reg[31:0]         reg_id_exe_mepc_data;
+    reg               reg_id_exe_mepc_wr;
+    reg[31:0]         reg_id_exe_mcause_data;
+    reg               reg_id_exe_mcause_wr;
+    reg[31:0]         reg_id_exe_mstatus_data;
+    reg               reg_id_exe_mstatus_wr;
+    reg[1:0]          reg_id_exe_mode_data;
+    reg               reg_id_exe_mode_wr;
+    reg               reg_id_exe_tlb_clr;
+    reg               reg_id_exe_jump;
 
     // regs between exe and mem
-    (* dont_touch = "true" *) reg[31:0]  reg_exe_mem_pc_now;
-    (* dont_touch = "true" *) reg[31:0]  reg_exe_mem_data_r, reg_exe_mem_data_b;
-    (* dont_touch = "true" *) reg        reg_exe_mem_pc_select;
-    (* dont_touch = "true" *) reg[4:0]   reg_exe_mem_reg_d;
-    (* dont_touch = "true" *) reg[11:0]  reg_exe_mem_csr;
-    (* dont_touch = "true" *) reg[4:0]   reg_exe_mem_op;
-    (* dont_touch = "true" *) reg        reg_exe_mem_mem_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_exe_mem_mem_to_reg;
-    (* dont_touch = "true" *) reg        reg_exe_mem_reg_wr;
-    (* dont_touch = "true" *) reg        reg_exe_mem_csr_reg_wr;
-    (* dont_touch = "true" *) reg        reg_exe_mem_abort;
-    (* dont_touch = "true" *) reg[31:0]  reg_exe_mem_mepc_data;
-    (* dont_touch = "true" *) reg        reg_exe_mem_mepc_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_exe_mem_mcause_data;
-    (* dont_touch = "true" *) reg        reg_exe_mem_mcause_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_exe_mem_mstatus_data;
-    (* dont_touch = "true" *) reg        reg_exe_mem_mstatus_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_exe_mem_mode_data;
-    (* dont_touch = "true" *) reg        reg_exe_mem_mode_wr;
-    (* dont_touch = "true" *) reg        reg_exe_mem_tlb_clr;
+    reg[31:0]         reg_exe_mem_pc_now;
+    reg[31:0]         reg_exe_mem_data_r, reg_exe_mem_data_b;
+    reg               reg_exe_mem_pc_select;
+    reg[4:0]          reg_exe_mem_reg_d;
+    reg[11:0]         reg_exe_mem_csr;
+    reg[4:0]          reg_exe_mem_op;
+    reg               reg_exe_mem_mem_wr;
+    reg[1:0]          reg_exe_mem_mem_to_reg;
+    reg               reg_exe_mem_reg_wr;
+    reg               reg_exe_mem_csr_reg_wr;
+    reg               reg_exe_mem_abort;
+    reg[31:0]         reg_exe_mem_mepc_data;
+    reg               reg_exe_mem_mepc_wr;
+    reg[31:0]         reg_exe_mem_mcause_data;
+    reg               reg_exe_mem_mcause_wr;
+    reg[31:0]         reg_exe_mem_mstatus_data;
+    reg               reg_exe_mem_mstatus_wr;
+    reg[1:0]          reg_exe_mem_mode_data;
+    reg               reg_exe_mem_mode_wr;
+    reg               reg_exe_mem_tlb_clr;
+    reg               reg_exe_mem_jump;
 
     // regs between mem and wb
-    (* dont_touch = "true" *) reg[31:0]  reg_mem_wb_data;
-    (* dont_touch = "true" *) reg[31:0]  reg_mem_wb_csr_data;
-    (* dont_touch = "true" *) reg[4:0]   reg_mem_wb_reg_d;
-    (* dont_touch = "true" *) reg[11:0]  reg_mem_wb_csr;
-    (* dont_touch = "true" *) reg[4:0]   reg_mem_wb_op;
-    (* dont_touch = "true" *) reg        reg_mem_wb_reg_wr;
-    (* dont_touch = "true" *) reg        reg_mem_wb_csr_reg_wr;
-    (* dont_touch = "true" *) reg        reg_mem_wb_abort;
-    (* dont_touch = "true" *) reg[31:0]  reg_mem_wb_mepc_data;
-    (* dont_touch = "true" *) reg        reg_mem_wb_mepc_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_mem_wb_mcause_data;
-    (* dont_touch = "true" *) reg        reg_mem_wb_mcause_wr;
-    (* dont_touch = "true" *) reg[31:0]  reg_mem_wb_mstatus_data;
-    (* dont_touch = "true" *) reg        reg_mem_wb_mstatus_wr;
-    (* dont_touch = "true" *) reg[1:0]   reg_mem_wb_mode_data;
-    (* dont_touch = "true" *) reg        reg_mem_wb_mode_wr;
+    reg[31:0]         reg_mem_wb_data;
+    reg[31:0]         reg_mem_wb_csr_data;
+    reg[4:0]          reg_mem_wb_reg_d;
+    reg[11:0]         reg_mem_wb_csr;
+    reg[4:0]          reg_mem_wb_op;
+    reg               reg_mem_wb_reg_wr;
+    reg               reg_mem_wb_csr_reg_wr;
+    reg               reg_mem_wb_abort;
+    reg[31:0]         reg_mem_wb_mepc_data;
+    reg               reg_mem_wb_mepc_wr;
+    reg[31:0]         reg_mem_wb_mcause_data;
+    reg               reg_mem_wb_mcause_wr;
+    reg[31:0]         reg_mem_wb_mstatus_data;
+    reg               reg_mem_wb_mstatus_wr;
+    reg[1:0]          reg_mem_wb_mode_data;
+    reg               reg_mem_wb_mode_wr;
 
-    (* dont_touch = "true" *) reg[3:0]   stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
-    (* dont_touch = "true" *) reg[31:0]  pc;
-    (* dont_touch = "true" *) reg[4:0]   time_counter;
-    (* dont_touch = "true" *) reg[1:0]   forwarding_select_a, forwarding_select_b;
+    reg[3:0]          stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
+    reg[31:0]         pc;
+    reg[4:0]          time_counter;
+    reg[1:0]          forwarding_select_a, forwarding_select_b;
+    reg[31:0]         jump_src[0:31], jump_dst[0:31];
+    reg[31:0]         valid;
 
     assign instr = reg_if_id_instr;
     assign regfile_raddr1 = ins_reg_s;
     assign regfile_raddr2 = ins_reg_t;
     assign csr_raddr = ins_csr;
-    assign br_un = 1'b0;
     assign alu_data_a = (reg_id_exe_a_select ? reg_id_exe_pc_now : reg_id_exe_data_a);
     assign alu_data_b = (reg_id_exe_b_select ? reg_id_exe_data_b : reg_id_exe_imm);
     assign alu_op = reg_id_exe_alu_op;
-    assign mem_be = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_SB));
+    assign mem_byte = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_SB));
+    assign mem_half = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LHU || reg_exe_mem_op == `OP_SH));
+    assign mem_unsigned = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU));
     assign mem_tlb_clr = (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_tlb_clr);
-    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
+    assign mem_address = (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
+        || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) ? reg_exe_mem_data_r : pc;
     assign mem_data_in = reg_exe_mem_data_b;
-
 
     always @(*) begin
         if (forwarding_select_a == 0) begin
@@ -236,6 +243,8 @@ module pipeline(
             reg_if_id_abort <= 1;  reg_id_exe_abort <= 1;  reg_exe_mem_abort <= 1;  reg_mem_wb_abort <= 1;
             // reset forwarding select
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
+            // reset valid
+            valid <= 32'b0;
         end
         else begin
             // 7 clk posedges for a cycle
@@ -254,140 +263,152 @@ module pipeline(
                     // abort this and last instr
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
-                    // set pc and csr regs 
+                    // set pc and csr regs
                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
                     reg_if_id_mepc_wr <= 1'b0;
                     reg_if_id_mcause_data <= { 1'b1, { 27{ 1'b0 } }, `M_TIMER_INT };
                     reg_if_id_mcause_wr <=  1'b1;
-                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0} } };
+                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } };
                     reg_if_id_mstatus_wr <=  1'b1;
                     reg_if_id_mode_data <= 2'b11; // set machine mode
                     reg_if_id_mode_wr <= 1'b1;
                 end
                 // control hazard
-                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
-                    if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
-                        pc <= reg_exe_mem_data_r & 32'hfffffffe;
-                    end
-                    else begin
-                        pc <= reg_exe_mem_data_r;
-                    end
+                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && ((reg_exe_mem_pc_select && reg_exe_mem_jump == 1'b0) ||
+                    (reg_exe_mem_jump == 1'b1 && jump_dst[reg_exe_mem_pc_now[6:2]] != ((reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r)))) begin
+                    pc <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
                     reg_if_id_abort <= 1;
                     reg_id_exe_abort <= 1;
                     reg_if_id_mepc_wr <= 1'b0;
                     reg_if_id_mcause_wr <= 1'b0;
                     reg_if_id_mstatus_wr <= 1'b0;
                     reg_if_id_mode_wr <= 1'b0;
+                    valid[reg_exe_mem_pc_now[6:2]] <= 1'b1;
+                    jump_src[reg_exe_mem_pc_now[6:2]] <= reg_exe_mem_pc_now;
+                    jump_dst[reg_exe_mem_pc_now[6:2]] <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
+                end
+                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && !reg_exe_mem_pc_select && reg_exe_mem_jump == 1'b1) begin
+                    pc <= reg_exe_mem_pc_now + 4;
+                    reg_if_id_abort <= 1;
+                    reg_id_exe_abort <= 1;
+                    reg_if_id_mepc_wr <= 1'b0;
+                    reg_if_id_mcause_wr <= 1'b0;
+                    reg_if_id_mstatus_wr <= 1'b0;
+                    reg_if_id_mode_wr <= 1'b0;
+                    valid[reg_exe_mem_pc_now[6:2]] <= 1'b0;
                 end
                 // data hazard or interrupt & exception
-                else begin
-                    if (stall_id == 0 && reg_if_id_abort == 0) begin
-                        // data hazard ( LB & LW )
-                        if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1 && (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW)) begin
-                            stall_if <= 2;
-                            stall_id <= 2;
+                else if (stall_id == 0 && reg_if_id_abort == 0) begin
+                    // data hazard ( LB & LW )
+                    if ((ins_reg_s == reg_id_exe_reg_d || ins_reg_t == reg_id_exe_reg_d) && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1 && (reg_id_exe_op == `OP_LB || reg_id_exe_op == `OP_LW)) begin
+                        stall_if <= 2;
+                        stall_id <= 2;
+                    end
+                    else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW)) begin
+                        stall_if <= 1;
+                        stall_id <= 1;
+                    end
+                    // data hazard ( forwarding )
+                    else begin
+                        if (ins_reg_s == reg_id_exe_reg_d && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
+                            forwarding_select_a <= 1;
                         end
-                        else if ((ins_reg_s == reg_exe_mem_reg_d || ins_reg_t == reg_exe_mem_reg_d) && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW)) begin
-                            stall_if <= 1;
-                            stall_id <= 1;
+                        else if (ins_reg_s == reg_exe_mem_reg_d && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
+                            forwarding_select_a <= 2;
                         end
-                        // data hazard ( forwarding )
                         else begin
-                            if (ins_reg_s == reg_id_exe_reg_d && reg_id_exe_abort == 0 && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) begin
-                                forwarding_select_a <= 1;
-                            end
-                            else if (ins_reg_s == reg_exe_mem_reg_d && reg_exe_mem_abort == 0 && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) begin
-                                forwarding_select_a <= 2;
-                            end
-                            else begin
-                                forwarding_select_a <= 0;
-                            end
+                            forwarding_select_a <= 0;
+                        end
 
-                            if (((ins_reg_t == reg_id_exe_reg_d && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) || (ins_csr == reg_id_exe_csr && reg_id_exe_csr_reg_wr == 1)) && reg_id_exe_abort == 0 ) begin
-                                forwarding_select_b <= 1;
-                            end
-                            else if (((ins_reg_t == reg_exe_mem_reg_d && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) || (ins_csr == reg_exe_mem_csr && reg_exe_mem_csr_reg_wr == 1)) && reg_exe_mem_abort == 0 ) begin
-                                forwarding_select_b <= 2;
-                            end
-                            else begin
-                                forwarding_select_b <= 0;
-                            end
+                        if (((ins_reg_t == reg_id_exe_reg_d && reg_id_exe_reg_d != 0 && reg_id_exe_reg_wr == 1) || (ins_csr == reg_id_exe_csr && reg_id_exe_csr_reg_wr == 1)) && reg_id_exe_abort == 0 ) begin
+                            forwarding_select_b <= 1;
+                        end
+                        else if (((ins_reg_t == reg_exe_mem_reg_d && reg_exe_mem_reg_d != 0 && reg_exe_mem_reg_wr == 1) || (ins_csr == reg_exe_mem_csr && reg_exe_mem_csr_reg_wr == 1)) && reg_exe_mem_abort == 0 ) begin
+                            forwarding_select_b <= 2;
+                        end
+                        else begin
+                            forwarding_select_b <= 0;
+                        end
 
-                            // priority from high to low
-                            if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
-                                // stall if for 4 cycles
-                                stall_if <= 4;
-                                // abort this instr
-                                reg_if_id_abort <= 1;
-                                // set pc and csr regs 
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `ILLEGAL_INSTR_EXC, 2'b00 };
-                                reg_if_id_mepc_data <= reg_if_id_pc_now;
-                                reg_if_id_mepc_wr <= 1'b1;
-                                reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `ILLEGAL_INSTR_EXC };
-                                reg_if_id_mcause_wr <=  1'b1;
-                                reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
-                                reg_if_id_mstatus_wr <= 1'b1;
-                                reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
-                                reg_if_id_mode_wr <= 1'b1;
-                            end
-                            else if (ins_op == `OP_EBREAK) begin // ebreak
-                                // stall if for 4 cycles
-                                stall_if <= 4;
-                                // abort this instr
-                                reg_if_id_abort <= 1;
-                                // set pc and csr regs 
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `BREAKPOINT_EXC, 2'b00 };
-                                reg_if_id_mepc_data <= reg_if_id_pc_now;
-                                reg_if_id_mepc_wr <= 1'b1;
-                                reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `BREAKPOINT_EXC };
-                                reg_if_id_mcause_wr <=  1'b1;
-                                reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
-                                reg_if_id_mstatus_wr <= 1'b1;
-                                reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
-                                reg_if_id_mode_wr <= 1'b1;
-                            end
-                            else if (ins_op == `OP_ECALL) begin // ecall
-                                // stall if for 4 cycles
-                                stall_if <= 4;
-                                // abort this instr
-                                reg_if_id_abort <= 1;
-                                // set pc and csr regs 
-                                pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (mode == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
-                                reg_if_id_mepc_data <= reg_if_id_pc_now;
-                                reg_if_id_mepc_wr <= 1'b1;
-                                reg_if_id_mcause_data <= mode == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
-                                reg_if_id_mcause_wr <=  1'b1;
-                                reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
-                                reg_if_id_mstatus_wr <= 1'b1;
-                                reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
-                                reg_if_id_mode_wr <= 1'b1;
-                            end
-                            else if (ins_op == `OP_MRET) begin // mret
-                                // stall if for 4 cycles
-                                stall_if <= 4;
-                                // abort this instr
-                                reg_if_id_abort <= 1;
-                                // set pc and csr regs 
-                                pc <= mepc;
-                                reg_if_id_mepc_wr <= 1'b0;
-                                reg_if_id_mcause_wr <=  1'b0;
-                                reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } }; // set machine mode as precious mode
-                                reg_if_id_mstatus_wr <= 1'b1;
-                                reg_if_id_mode_data <= 2'b00; // set user mode as present mode
-                                reg_if_id_mode_wr <= 1'b1;
-                            end
-                            else begin // no exception / interrupt in id
-                                reg_if_id_mepc_wr <= 1'b0;
-                                reg_if_id_mcause_wr <=  1'b0;
-                                reg_if_id_mstatus_wr <= 1'b0;
-                                reg_if_id_mode_wr <= 1'b0;
-                            end
+                        // priority from high to low
+                        if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
+                            // stall if for 4 cycles
+                            stall_if <= 4;
+                            // abort this instr
+                            reg_if_id_abort <= 1;
+                            // set pc and csr regs 
+                            pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `ILLEGAL_INSTR_EXC, 2'b00 };
+                            reg_if_id_mepc_data <= reg_if_id_pc_now;
+                            reg_if_id_mepc_wr <= 1'b1;
+                            reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `ILLEGAL_INSTR_EXC };
+                            reg_if_id_mcause_wr <=  1'b1;
+                            reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
+                            reg_if_id_mstatus_wr <= 1'b1;
+                            reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
+                            reg_if_id_mode_wr <= 1'b1;
+                        end
+                        else begin
+                            case(ins_op)
+                                `OP_EBREAK: begin // ebreak
+                                    // stall if for 4 cycles
+                                    stall_if <= 4;
+                                    // abort this instr
+                                    reg_if_id_abort <= 1;
+                                    // set pc and csr regs 
+                                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `BREAKPOINT_EXC, 2'b00 };
+                                    reg_if_id_mepc_data <= reg_if_id_pc_now;
+                                    reg_if_id_mepc_wr <= 1'b1;
+                                    reg_if_id_mcause_data <= { 1'b0, { 27{ 1'b0 } }, `BREAKPOINT_EXC };
+                                    reg_if_id_mcause_wr <=  1'b1;
+                                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
+                                    reg_if_id_mstatus_wr <= 1'b1;
+                                    reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
+                                    reg_if_id_mode_wr <= 1'b1;
+                                end
+                                `OP_ECALL: begin // ecall
+                                    // stall if for 4 cycles
+                                    stall_if <= 4;
+                                    // abort this instr
+                                    reg_if_id_abort <= 1;
+                                    // set pc and csr regs 
+                                    pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (mode == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
+                                    reg_if_id_mepc_data <= reg_if_id_pc_now;
+                                    reg_if_id_mepc_wr <= 1'b1;
+                                    reg_if_id_mcause_data <= mode == 2'b00 ? { 1'b0, { 27{ 1'b0 } }, `ECALL_U_EXC } : { 1'b0, { 27{ 1'b0 } }, `ECALL_M_EXC };
+                                    reg_if_id_mcause_wr <=  1'b1;
+                                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b00, { 11{ 1'b0 } } }; // set user mode as precious mode
+                                    reg_if_id_mstatus_wr <= 1'b1;
+                                    reg_if_id_mode_data <= 2'b11; // set machine mode as present mode
+                                    reg_if_id_mode_wr <= 1'b1;
+                                end
+                                `OP_MRET: begin // mret
+                                    // stall if for 4 cycles
+                                    stall_if <= 4;
+                                    // abort this instr
+                                    reg_if_id_abort <= 1;
+                                    // set pc and csr regs 
+                                    pc <= mepc;
+                                    reg_if_id_mepc_wr <= 1'b0;
+                                    reg_if_id_mcause_wr <=  1'b0;
+                                    reg_if_id_mstatus_data <= { { 19{ 1'b0 } }, 2'b11, { 11{ 1'b0 } } }; // set machine mode as precious mode
+                                    reg_if_id_mstatus_wr <= 1'b1;
+                                    reg_if_id_mode_data <= 2'b00; // set user mode as present mode
+                                    reg_if_id_mode_wr <= 1'b1;
+                                end
+                                default: begin // no exception / interrupt in id
+                                    reg_if_id_mepc_wr <= 1'b0;
+                                    reg_if_id_mcause_wr <=  1'b0;
+                                    reg_if_id_mstatus_wr <= 1'b0;
+                                    reg_if_id_mode_wr <= 1'b0;
+                                end
+                            endcase
                         end
                     end
                 end
 
                 // structural hazard
-                if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SW)) begin
+                if (stall_mem == 0 && reg_exe_mem_abort == 0 && (reg_exe_mem_op == `OP_LB || reg_exe_mem_op == `OP_LH || reg_exe_mem_op == `OP_LW || reg_exe_mem_op == `OP_LBU || reg_exe_mem_op == `OP_LHU
+                    || reg_exe_mem_op == `OP_SB || reg_exe_mem_op == `OP_SH || reg_exe_mem_op == `OP_SW)) begin
                     stall_structural_hazard <= 1;
                     mem_oe <= reg_exe_mem_mem_wr ^ 1'b1;
                     mem_we <= reg_exe_mem_mem_wr;
@@ -410,7 +431,14 @@ module pipeline(
             // stage if
             if (stall_structural_hazard == 0 && stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
                 // fetch instructions from memory
-                pc <= pc + 4;
+                if (valid[pc[6:2]] == 1 && jump_src[pc[6:2]] == pc) begin
+                    pc <= jump_dst[pc[6:2]];
+                    reg_if_id_jump <= 1'b1;
+                end
+                else begin
+                    pc <= pc + 4;
+                    reg_if_id_jump <= 1'b0;
+                end
                 reg_if_id_pc_now <= pc;
                 reg_if_id_instr <= mem_data_out;
                 reg_if_id_abort <= 0;
@@ -447,6 +475,7 @@ module pipeline(
                 reg_id_exe_mode_data <= reg_if_id_mode_data;
                 reg_id_exe_mode_wr <= reg_if_id_mode_wr;
                 reg_id_exe_tlb_clr <= ins_tlb_clr;
+                reg_id_exe_jump <= reg_if_id_jump;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_exe == 0) begin
@@ -476,6 +505,7 @@ module pipeline(
                 reg_exe_mem_mode_data <= reg_id_exe_mode_data;
                 reg_exe_mem_mode_wr <= reg_id_exe_mode_wr;
                 reg_exe_mem_tlb_clr <= reg_id_exe_tlb_clr;
+                reg_exe_mem_jump <= reg_id_exe_jump;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_mem == 0) begin
