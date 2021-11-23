@@ -53,7 +53,7 @@ module sram(
     /*(* dont_touch = "true" *)*/ reg               data_z;
     /*(* dont_touch = "true" *)*/ reg[31:0]         reg_address;
     /*(* dont_touch = "true" *)*/ reg[21:0]         reg_entry;
-    /*(* dont_touch = "true" *)*/ wire              use_sram, use_base, use_ext, use_uart, use_uart_state, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi;
+    /*(* dont_touch = "true" *)*/ wire              use_sram, use_base, use_ext, use_uart, use_uart_state/*, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi*/;
     /*(* dont_touch = "true" *)*/ wire[7:0]         uart_state_data;
     /*(* dont_touch = "true" *)*/ reg[31:0]         reg_mtime_lo, reg_mtime_hi, reg_mtimecmp_lo, reg_mtimecmp_hi;
     /*(* dont_touch = "true" *)*/ reg[3:0]          state, uart_write_state, mtime_state;
@@ -76,10 +76,10 @@ module sram(
 
     assign use_uart = (address == 32'h10000000);
     assign use_uart_state = (address == 32'h10000005);
-    assign use_mtime_lo = (address == 32'h0200bff8);
-    assign use_mtime_hi = (address == 32'h0200bffc);
-    assign use_mtimecmp_lo = (address == 32'h02004000);
-    assign use_mtimecmp_hi = (address == 32'h02004004);
+    //assign use_mtime_lo = (address == 32'h0200bff8);
+    //assign use_mtime_hi = (address == 32'h0200bffc);
+    //assign use_mtimecmp_lo = (address == 32'h02004000);
+    //assign use_mtimecmp_hi = (address == 32'h02004004);
     assign use_sram = (use_base || use_ext);
     assign use_base = (satp[31] == 1 && mode == 2'b00) ?  
                       (((32'h00000000 <= address && address < 32'h00300000) ||
@@ -95,8 +95,8 @@ module sram(
 
     //reg write_cache;
     //wire[31:0] out_data, out_byte, out_half;
-    wire[31:0] ram_data_wire;
-    assign ram_data_wire = use_ext ? ext_ram_data_wire : base_ram_data_wire;
+    wire[31:0] sram_data_wire;
+    assign sram_data_wire = use_ext ? ext_ram_data_wire : base_ram_data_wire;
     //assign out_byte = unsigned_ ? ((out_data << ((3 - address[1:0]) * 8)) >>> 24) : ((out_data << ((3 - address[1:0]) * 8)) >> 24);
     //assign out_half = unsigned_ ? ((out_data << ((2 - address[1:0]) * 8)) >>> 16) : ((out_data << ((2 - address[1:0]) * 8)) >> 16);
 
@@ -137,8 +137,8 @@ module sram(
                         TLBs[3][42] <= 1'b0;
                     end
                     if (we) begin
-                        case({ use_sram, use_uart, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi })
-                            6'b100000: begin
+                        case({ use_sram, use_uart/*, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi*/ })
+                            2'b10: begin
                                 if (satp[31] == 1 && mode == 2'b00) begin
                                     if (address[31:12] == TLBs[0][41:22] && TLBs[0][42] == 1) begin
                                         state <= `STATE_SRAM_WRITE;
@@ -183,12 +183,24 @@ module sram(
                                     done <= 1'b0; 
                                 end
                             end
-                            6'b010000: begin
+                            2'b01: begin
                                 state <= `STATE_UART_READ_WRITE;
                                 uart_wrn <= 1'b0;
                                 done <= 1'b0;
                             end
-                            6'b001000: begin
+                            default: begin
+                                state <= `STATE_FINISHED;
+                                reg_mtime_lo <= (address == 32'h0200bff8) ? data_in : reg_mtime_lo;
+                                reg_mtime_hi <= (address == 32'h0200bffc) ? data_in : reg_mtime_hi;
+                                reg_mtimecmp_lo <= (address == 32'h02004000) ? data_in : reg_mtimecmp_lo;
+                                reg_mtimecmp_hi <= (address == 32'h02004004) ? data_in : reg_mtimecmp_hi;
+                                /*assign use_mtime_lo = (address == 32'h0200bff8);
+                                assign use_mtime_hi = (address == 32'h0200bffc);
+                                assign use_mtimecmp_lo = (address == 32'h02004000);
+                                assign use_mtimecmp_hi = (address == 32'h02004004);*/
+                                done <= 1'b1;
+                            end
+                            /*6'b001000: begin
                                 state <= `STATE_FINISHED;
                                 reg_mtime_lo <= data_in;
                                 done <= 1'b1;
@@ -210,12 +222,12 @@ module sram(
                             end
                             default: begin
                                 state <= `STATE_IDLE;
-                            end
+                            end*/
                         endcase
                     end
                     else if (oe) begin
-                        case({ use_sram, use_uart, use_uart_state, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi })
-                            7'b1000000: begin
+                        case({ use_sram, use_uart, use_uart_state/*, use_mtime_lo, use_mtime_hi, use_mtimecmp_lo, use_mtimecmp_hi*/ })
+                            3'b100: begin
                                 if (satp[31] == 1 && mode == 2'b00) begin
                                     if (address[31:12] == TLBs[0][41:22] && TLBs[0][42] == 1) begin
                                         state <= `STATE_SRAM_READ;
@@ -291,18 +303,27 @@ module sram(
                                     end
                                 end
                             end
-                            7'b0100000: begin
+                            3'b010: begin
                                 state <= `STATE_UART_READ_WRITE;
                                 data_z <= 1'b1;
                                 uart_rdn <= 1'b0;
                                 done <= 1'b0;
                             end
-                            7'b0010000: begin
+                            3'b001: begin
                                 state <= `STATE_FINISHED;
                                 data_out <= { 24'h000000, uart_state_data };
                                 done <= 1'b1;
                             end
-                            7'b0001000: begin
+                            default: begin
+                                state <= `STATE_FINISHED;
+                                data_out <= (address > 32'h0200bff0) ? ((address == 32'h0200bff8) ? reg_mtime_lo : reg_mtime_hi) : ((address == 32'h02004000) ? reg_mtimecmp_lo : reg_mtimecmp_hi);
+                                done <= 1'b1;
+                                /*assign use_mtime_lo = (address == 32'h0200bff8);
+                                assign use_mtime_hi = (address == 32'h0200bffc);
+                                assign use_mtimecmp_lo = (address == 32'h02004000);
+                                assign use_mtimecmp_hi = (address == 32'h02004004);*/
+                            end
+                            /*7'b0001000: begin
                                 state <= `STATE_FINISHED;
                                 data_out <= reg_mtime_lo;
                                 done <= 1'b1;
@@ -324,7 +345,7 @@ module sram(
                             end
                             default: begin
                                 state <= `STATE_IDLE;
-                            end
+                            end*/
                         endcase
                     end
                 end
@@ -415,16 +436,16 @@ module sram(
                     //if (use_ext) begin
                         case({byte, half})
                             2'b10: begin
-                                data_out <= unsigned_ ? ((ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
+                                data_out <= unsigned_ ? ((sram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((sram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
                             end
                             2'b01: begin
-                                data_out <= unsigned_ ? ((ram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((ram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
+                                data_out <= unsigned_ ? ((sram_data_wire << ((2 - address[1:0]) * 8)) >>> 16) : ((sram_data_wire << ((2 - address[1:0]) * 8)) >> 16);
                             end
                             default: begin
-                                data_out <= ram_data_wire;
+                                data_out <= sram_data_wire;
                                 valid[address[6:2]] <= 1;
                                 cache_addr[address[6:2]] <= address;
-                                cache_data[address[6:2]] <= ram_data_wire;
+                                cache_data[address[6:2]] <= sram_data_wire;
                             end
                         endcase
                     /*end
