@@ -94,10 +94,10 @@ module sram(
     assign timeout = reg_timeout;
 
     reg write_cache;
-    wire[31:0] out_data, out_byte, out_half;
-    assign out_data = use_ext ? ext_ram_data_wire : base_ram_data_wire;
-    assign out_byte = unsigned_ ? ((out_data << ((3 - address[1:0]) * 8)) >>> 24) : ((out_data << ((3 - address[1:0]) * 8)) >> 24);
-    assign out_half = unsigned_ ? ((out_data << ((2 - address[1:0]) * 8)) >>> 16) : ((out_data << ((2 - address[1:0]) * 8)) >> 16);
+    //wire[31:0] out_data, out_byte, out_half;
+    //assign out_data = use_ext ? ext_ram_data_wire : base_ram_data_wire;
+    //assign out_byte = unsigned_ ? ((out_data << ((3 - address[1:0]) * 8)) >>> 24) : ((out_data << ((3 - address[1:0]) * 8)) >> 24);
+    //assign out_half = unsigned_ ? ((out_data << ((2 - address[1:0]) * 8)) >>> 16) : ((out_data << ((2 - address[1:0]) * 8)) >> 16);
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -389,7 +389,7 @@ module sram(
                     state <= `STATE_FINISHED;
                     base_ram_oe_n <= 1'b1;
                     ext_ram_oe_n <= 1'b1;
-                    case({byte, half})
+                    /*case({byte, half})
                         2'b10: begin
                             data_out <= out_byte;
                         end
@@ -399,9 +399,9 @@ module sram(
                         default: begin
                             data_out <= out_data;
                         end
-                    endcase
-                    //if (use_ext) begin
-                        /*case({byte, half})
+                    endcase*/
+                    if (use_ext) begin
+                        case({byte, half})
                             2'b10: begin
                                 data_out <= unsigned_ ? ((ext_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((ext_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
                             end
@@ -411,7 +411,7 @@ module sram(
                             default: begin
                                 data_out <= ext_ram_data_wire;
                             end
-                        endcase*/
+                        endcase
                         /*case({ byte, half, address[1:0] })
                             4'b1000: begin
                                 data_out <= unsigned_ ? { 24'h0, ext_ram_data_wire[7:0] } : { { 24{ ext_ram_data_wire[7] } }, ext_ram_data_wire[7:0] };
@@ -447,9 +447,9 @@ module sram(
                                 //cache_data[address[6:2]] <= ext_ram_data_wire;
                             end
                         endcase*/
-                    //end
-                    //else begin
-                        /*case({byte, half})
+                    end
+                    else begin
+                        case({byte, half})
                             2'b10: begin
                                 data_out <= unsigned_ ? ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
                             end
@@ -459,7 +459,7 @@ module sram(
                             default: begin
                                 data_out <= base_ram_data_wire;
                             end
-                        endcase*/
+                        endcase
                         /*if (byte == 1) begin
                             data_out <= unsigned_ ? ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >>> 24) : ((base_ram_data_wire << ((3 - address[1:0]) * 8)) >> 24);
                         end
@@ -502,7 +502,7 @@ module sram(
                                 data_out <= base_ram_data_wire;
                             end
                         endcase*/
-                    //end
+                    end
                     done <= 1'b1;
                 end
 
