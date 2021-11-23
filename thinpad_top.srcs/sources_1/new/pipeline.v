@@ -222,6 +222,10 @@ module pipeline(
         end
     end
 
+    reg[31:0] jump_src[0:31], jump_dst[0:31];
+    reg reg_if_id_jump, reg_id_exe_jump, reg_exe_mem_jump;
+    reg[31:0] valid;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             // reset program counter
@@ -240,6 +244,7 @@ module pipeline(
             reg_if_id_abort <= 1;  reg_id_exe_abort <= 1;  reg_exe_mem_abort <= 1;  reg_mem_wb_abort <= 1;
             // reset forwarding select
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
+            valid <= 32'b0;
         end
         else begin
             // 7 clk posedges for a cycle
@@ -269,7 +274,8 @@ module pipeline(
                     reg_if_id_mode_wr <= 1'b1;
                 end
                 // control hazard
-                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && reg_exe_mem_pc_select) begin
+                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && ((reg_exe_mem_pc_select && reg_exe_mem_jump == 1'b0) ||
+                    (reg_exe_mem_jump == 1'b1 && jump_dst[reg_exe_mem_pc_now[6:2]] != ((reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r)))) begin
                     if (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) begin
                         pc <= reg_exe_mem_data_r & 32'hfffffffe;
                     end
@@ -282,6 +288,19 @@ module pipeline(
                     reg_if_id_mcause_wr <= 1'b0;
                     reg_if_id_mstatus_wr <= 1'b0;
                     reg_if_id_mode_wr <= 1'b0;
+                    valid[reg_exe_mem_pc_now[6:2]] <= 1'b1;
+                    jump_src[reg_exe_mem_pc_now[6:2]] <= reg_exe_mem_pc_now;
+                    jump_dst[reg_exe_mem_pc_now[6:2]] <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
+                end
+                else if (stall_mem == 0 && reg_exe_mem_abort == 0 && !reg_exe_mem_pc_select && reg_exe_mem_jump == 1'b1) begin
+                    pc <= reg_exe_mem_pc_now + 4;
+                    reg_if_id_abort <= 1;
+                    reg_id_exe_abort <= 1;
+                    reg_if_id_mepc_wr <= 1'b0;
+                    reg_if_id_mcause_wr <= 1'b0;
+                    reg_if_id_mstatus_wr <= 1'b0;
+                    reg_if_id_mode_wr <= 1'b0;
+                    valid[reg_exe_mem_pc_now[6:2]] <= 1'b0;
                 end
                 // data hazard or interrupt & exception
                 else begin
@@ -415,7 +434,14 @@ module pipeline(
             // stage if
             if (stall_structural_hazard == 0 && stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
                 // fetch instructions from memory
-                pc <= pc + 4;
+                if (valid[pc[6:2]] == 1 && jump_src[pc[6:2]] == pc) begin
+                    pc <= jump_dst[pc[6:2]];
+                    reg_if_id_jump <= 1'b1;
+                end
+                else begin
+                    pc <= pc + 4;
+                    reg_if_id_jump <= 1'b0;
+                end
                 reg_if_id_pc_now <= pc;
                 reg_if_id_instr <= mem_data_out;
                 reg_if_id_abort <= 0;
@@ -452,6 +478,7 @@ module pipeline(
                 reg_id_exe_mode_data <= reg_if_id_mode_data;
                 reg_id_exe_mode_wr <= reg_if_id_mode_wr;
                 reg_id_exe_tlb_clr <= ins_tlb_clr;
+                reg_id_exe_jump <= reg_if_id_jump;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_exe == 0) begin
@@ -481,6 +508,7 @@ module pipeline(
                 reg_exe_mem_mode_data <= reg_id_exe_mode_data;
                 reg_exe_mem_mode_wr <= reg_id_exe_mode_wr;
                 reg_exe_mem_tlb_clr <= reg_id_exe_tlb_clr;
+                reg_exe_mem_jump <= reg_id_exe_jump;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_mem == 0) begin
