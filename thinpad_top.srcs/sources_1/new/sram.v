@@ -93,6 +93,8 @@ module sram(
     assign uart_state_data = (state == `STATE_IDLE) ? (((uart_write_state == `STATE_IDLE) << 5) | uart_dataready) : 8'b00000000;
     assign timeout = reg_timeout;
 
+    reg write_cache;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= `STATE_IDLE;
@@ -118,6 +120,7 @@ module sram(
             TLBs[2] <= 43'b0;
             TLBs[3] <= 43'b0;
             valid <= 32'b0;
+            write_cache <= 1'b0;
         end
         else begin
             case(state)
@@ -285,6 +288,7 @@ module sram(
                                         base_ram_oe_n <= use_ext ? 1 : 0;
                                         ext_ram_oe_n <= use_ext ? 0 : 1;
                                         done <= 1'b0;
+                                        write_cache <= 1'b1;
                                     end
                                 end
                             end
@@ -430,9 +434,7 @@ module sram(
                             end
                             default: begin
                                 data_out <= ext_ram_data_wire;
-                                valid[address[6:2]] <= 1;
-                                cache_addr[address[6:2]] <= address;
-                                cache_data[address[6:2]] <= ext_ram_data_wire;
+                                
                                 //cache_data[address[6:2]] <= ext_ram_data_wire;
                             end
                         endcase
@@ -469,9 +471,9 @@ module sram(
                             end
                             default: begin
                                 data_out <= base_ram_data_wire;
-                                valid[address[6:2]] <= 1;
+                                /*valid[address[6:2]] <= 1;
                                 cache_addr[address[6:2]] <= address;
-                                cache_data[address[6:2]] <= base_ram_data_wire;
+                                cache_data[address[6:2]] <= base_ram_data_wire;*/
                             end
                         endcase
                     end
@@ -494,6 +496,12 @@ module sram(
                 `STATE_FINISHED: begin
                     state <= `STATE_IDLE;
                     data_z <= 1'b0;
+                    if (write_cache == 1 && byte == 0 && half == 0) begin
+                        valid[address[6:2]] <= 1;
+                        cache_addr[address[6:2]] <= address;
+                        cache_data[address[6:2]] <= data_out;
+                        write_cache <= 0;
+                    end
                 end
 
                 default: begin
