@@ -427,14 +427,12 @@ module pipeline(
             else if (time_counter == 1) begin
                 mem_oe <= 1'b0;
                 mem_we <= 1'b0;
+            end
+            // reset forwarding signal
+            else if (time_counter >= 2 && mem_done == 1) begin
                 forwarding_select_a <= 0;
                 forwarding_select_b <= 0;
             end
-            // reset forwarding signal
-            /*else if (time_counter >= 2 && mem_done == 1) begin
-                forwarding_select_a <= 0;
-                forwarding_select_b <= 0;
-            end*/
 
             // stage if
             if (stall_structural_hazard == 0 && stall_if == 0 && time_counter >= 2 && mem_done == 1) begin
