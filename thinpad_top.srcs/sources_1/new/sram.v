@@ -253,7 +253,7 @@ module sram(
                                     end
                                 end
                                 else begin
-                                    if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
+                                    /*if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
                                         state <= `STATE_FINISHED;
                                         if (byte == 1) begin
                                             data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
@@ -264,41 +264,15 @@ module sram(
                                         else begin
                                             data_out <= cache_data[address[6:2]];
                                         end
-                                        /*case({ byte, half, address[1:0] })
-                                            4'b1000: begin
-                                                data_out <= unsigned_ ? { 24'h0, cache_data[address[6:2]][7:0] } : { { 24{ cache_data[address[6:2]][7] } }, cache_data[address[6:2]][7:0] };
-                                            end
-                                            4'b1001: begin
-                                                data_out <= unsigned_ ? { 24'h0, cache_data[address[6:2]][15:8] } : { { 24{ cache_data[address[6:2]][15] } }, cache_data[address[6:2]][15:8] };
-                                            end
-                                            4'b1010: begin
-                                                data_out <= unsigned_ ? { 24'h0, cache_data[address[6:2]][23:16] } : { { 24{ cache_data[address[6:2]][23] } }, cache_data[address[6:2]][23:16] };
-                                            end
-                                            4'b1011: begin
-                                                data_out <= unsigned_ ? { 24'h0, cache_data[address[6:2]][31:24] } : { { 24{ cache_data[address[6:2]][31] } }, cache_data[address[6:2]][31:24] };
-                                            end
-                                            4'b0100: begin
-                                                data_out <= unsigned_ ? { 16'h0, cache_data[address[6:2]][15:0] } : { { 16{ cache_data[address[6:2]][15] } }, cache_data[address[6:2]][15:0] };
-                                            end
-                                            4'b0101: begin
-                                                data_out <= unsigned_ ? { 16'h0, cache_data[address[6:2]][23:8] } : { { 16{ cache_data[address[6:2]][23] } }, cache_data[address[6:2]][23:8] };
-                                            end
-                                            4'b0110: begin
-                                                data_out <= unsigned_ ? { 16'h0, cache_data[address[6:2]][31:16] } : { { 16{ cache_data[address[6:2]][31] } }, cache_data[address[6:2]][31:16] };
-                                            end
-                                            default: begin
-                                                data_out <= cache_data[address[6:2]];
-                                            end
-                                        endcase*/
                                     end
-                                    else begin
+                                    else begin*/
                                         state <= `STATE_SRAM_READ;
                                         data_z <= 1'b1;
                                         base_ram_oe_n <= use_ext ? 1 : 0;
                                         ext_ram_oe_n <= use_ext ? 0 : 1;
                                         done <= 1'b0;
                                         write_cache <= 1'b1;
-                                    end
+                                    //end
                                 end
                             end
                             7'b0100000: begin
