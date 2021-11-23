@@ -250,7 +250,7 @@ module sram(
                                     end
                                 end
                                 else begin
-                                    /*if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
+                                    if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
                                         state <= `STATE_FINISHED;
                                         case({ byte, half, address[1:0] })
                                             4'b1000: begin
@@ -279,13 +279,13 @@ module sram(
                                             end
                                         endcase
                                     end
-                                    else begin*/
+                                    else begin
                                         state <= `STATE_SRAM_READ;
                                         data_z <= 1'b1;
                                         base_ram_oe_n <= use_ext ? 1 : 0;
                                         ext_ram_oe_n <= use_ext ? 0 : 1;
                                         done <= 1'b0;
-                                    //end
+                                    end
                                 end
                             end
                             7'b0100000: begin
@@ -438,7 +438,6 @@ module sram(
                         endcase
                     end
                     else begin
-                        cache_data[address[6:2]] <= base_ram_data_wire;
                         case({ byte, half, address[1:0] })
                             4'b1000: begin
                                 data_out <= unsigned_ ? { 24'h0, base_ram_data_wire[7:0] } : { { 24{ base_ram_data_wire[7] } }, base_ram_data_wire[7:0] };
