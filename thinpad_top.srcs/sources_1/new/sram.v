@@ -360,9 +360,9 @@ module sram(
                     base_ram_we_n <= 1'b1;
                     ext_ram_we_n <= 1'b1;
                     done <= 1'b1;
-                    /*if (cache_addr[address[6:2]] != address) begin
+                    if (cache_addr[address[6:2]] != address) begin
                         valid[address[6:2]] <= 0;
-                    end*/
+                    end
                 end
 
                 `STATE_SRAM_READ_PAGE_0: begin
@@ -395,10 +395,9 @@ module sram(
 
                 `STATE_SRAM_READ: begin
                     state <= `STATE_FINISHED;
-                    base_ram_oe_n <= 1'b1;
-                    ext_ram_oe_n <= 1'b1;
-                    /*valid[address[6:2]] <= 1;
-                    cache_addr[address[6:2]] <= address;*/
+                    valid[address[6:2]] <= 1;
+                    cache_addr[address[6:2]] <= address;
+                    cache_data[address[6:2]] <= ext_ram_data_wire;
                     if (use_ext) begin
                         case({ byte, half, address[1:0] })
                             4'b1000: begin
@@ -490,6 +489,8 @@ module sram(
                 `STATE_FINISHED: begin
                     state <= `STATE_IDLE;
                     data_z <= 1'b0;
+                    base_ram_oe_n <= 1'b1;
+                    ext_ram_oe_n <= 1'b1;
                 end
 
                 default: begin
