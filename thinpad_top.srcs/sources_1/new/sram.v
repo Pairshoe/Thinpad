@@ -259,15 +259,17 @@ module sram(
                                 else begin
                                     if (valid[address[6:2]] == 1 && cache_addr[address[6:2]] == address) begin
                                         state <= `STATE_FINISHED;
-                                        if (byte == 1) begin
-                                            data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
-                                        end
-                                        else if (half == 1) begin
-                                            data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >>> 16) : ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >> 16);
-                                        end
-                                        else begin
-                                            data_out <= cache_data[address[6:2]];
-                                        end
+                                        case({ byte, half })
+                                            2'b10: begin
+                                                data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >>> 24) : ((cache_data[address[6:2]] << ((3 - address[1:0]) * 8)) >> 24);
+                                            end
+                                            2'b01: begin
+                                                data_out <= unsigned_ ? ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >>> 16) : ((cache_data[address[6:2]] << ((2 - address[1:0]) * 8)) >> 16);
+                                            end
+                                            default: begin
+                                                data_out <= cache_data[address[6:2]];
+                                            end
+                                        endcase
                                     end
                                     else begin
                                         state <= `STATE_SRAM_READ;
