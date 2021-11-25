@@ -20,6 +20,7 @@ module pipeline(
     input wire        mem_done,
     input wire[3:0]   mem_exception,
     input wire        timeout,
+    output reg        stop_timeout,
 
     // interface to decoder
     output wire[31:0] instr,
@@ -114,6 +115,7 @@ module pipeline(
     reg[1:0]          reg_if_id_mode_data;
     reg               reg_if_id_mode_wr;
     reg               reg_if_id_jump;
+    reg               reg_if_id_int_wr;
 
     // regs between id and exe
     reg[31:0]         reg_id_exe_pc_now;
@@ -139,6 +141,8 @@ module pipeline(
     reg               reg_id_exe_mode_wr;
     reg               reg_id_exe_tlb_clr;
     reg               reg_id_exe_jump;
+    reg               reg_id_exe_int_wr;
+    
 
     // regs between exe and mem
     reg[31:0]         reg_exe_mem_pc_now;
@@ -162,6 +166,7 @@ module pipeline(
     reg               reg_exe_mem_mode_wr;
     reg               reg_exe_mem_tlb_clr;
     reg               reg_exe_mem_jump;
+    reg               reg_exe_mem_int_wr;
 
     // regs between mem and wb
     reg[31:0]         reg_mem_wb_data;
@@ -180,6 +185,7 @@ module pipeline(
     reg               reg_mem_wb_mstatus_wr;
     reg[1:0]          reg_mem_wb_mode_data;
     reg               reg_mem_wb_mode_wr;
+    reg               reg_mem_wb_int_wr;
 
     reg[3:0]          stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
     reg[31:0]         pc;
@@ -245,6 +251,8 @@ module pipeline(
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
             // reset valid
             valid <= 32'b0;
+            // stop timeout
+            stop_timeout <= 1'b0;
         end
         else begin
             // 7 clk posedges for a cycle
@@ -260,9 +268,12 @@ module pipeline(
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
                 if (timeout && mode == 2'b00) begin //timer interrupt and in user mode
-                    // abort this and last instr
-                    reg_if_id_abort <= 1;
-                    reg_id_exe_abort <= 1;
+                    // enable int csr write
+                    reg_if_id_int_wr <= 1'b1;
+                    // stall if for 4 cycles
+                    stall_if <= 4;
+                    // tell sram to stop sending timeout signal
+                    stop_timeout <= 1'b1;
                     // set pc and csr regs
                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
                     reg_if_id_mepc_wr <= 1'b0;
@@ -283,6 +294,7 @@ module pipeline(
                     reg_if_id_mcause_wr <= 1'b0;
                     reg_if_id_mstatus_wr <= 1'b0;
                     reg_if_id_mode_wr <= 1'b0;
+                    reg_if_id_int_wr <= 1'b0;
                     valid[reg_exe_mem_pc_now[6:2]] <= 1'b1;
                     jump_src[reg_exe_mem_pc_now[6:2]] <= reg_exe_mem_pc_now;
                     jump_dst[reg_exe_mem_pc_now[6:2]] <= (reg_exe_mem_op == `OP_JAL || reg_exe_mem_op == `OP_JALR) ? (reg_exe_mem_data_r & 32'hfffffffe) : reg_exe_mem_data_r;
@@ -295,6 +307,7 @@ module pipeline(
                     reg_if_id_mcause_wr <= 1'b0;
                     reg_if_id_mstatus_wr <= 1'b0;
                     reg_if_id_mode_wr <= 1'b0;
+                    reg_if_id_int_wr <= 1'b0;
                     valid[reg_exe_mem_pc_now[6:2]] <= 1'b0;
                 end
                 // data hazard or interrupt & exception
@@ -332,10 +345,10 @@ module pipeline(
 
                         // priority from high to low
                         if (decoder_exception == `ILLEGAL_INSTR_EXC) begin // illegal instruction
+                            // enable int csr write
+                            reg_if_id_int_wr <= 1'b1;
                             // stall if for 4 cycles
                             stall_if <= 4;
-                            // abort this instr
-                            reg_if_id_abort <= 1;
                             // set pc and csr regs 
                             pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `ILLEGAL_INSTR_EXC, 2'b00 };
                             reg_if_id_mepc_data <= reg_if_id_pc_now;
@@ -350,10 +363,10 @@ module pipeline(
                         else begin
                             case(ins_op)
                                 `OP_EBREAK: begin // ebreak
+                                    // enable int csr write
+                                    reg_if_id_int_wr <= 1'b1;
                                     // stall if for 4 cycles
                                     stall_if <= 4;
-                                    // abort this instr
-                                    reg_if_id_abort <= 1;
                                     // set pc and csr regs 
                                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `BREAKPOINT_EXC, 2'b00 };
                                     reg_if_id_mepc_data <= reg_if_id_pc_now;
@@ -366,10 +379,10 @@ module pipeline(
                                     reg_if_id_mode_wr <= 1'b1;
                                 end
                                 `OP_ECALL: begin // ecall
+                                    // enable int csr write
+                                    reg_if_id_int_wr <= 1'b1;
                                     // stall if for 4 cycles
                                     stall_if <= 4;
-                                    // abort this instr
-                                    reg_if_id_abort <= 1;
                                     // set pc and csr regs 
                                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + (mode == 2'b00 ? { { 26{ 1'b0 } }, `ECALL_U_EXC, 2'b00 } : { { 26{ 1'b0 } }, `ECALL_M_EXC, 2'b00 });
                                     reg_if_id_mepc_data <= reg_if_id_pc_now;
@@ -382,10 +395,10 @@ module pipeline(
                                     reg_if_id_mode_wr <= 1'b1;
                                 end
                                 `OP_MRET: begin // mret
+                                    // enable int csr write
+                                    reg_if_id_int_wr <= 1'b1;
                                     // stall if for 4 cycles
                                     stall_if <= 4;
-                                    // abort this instr
-                                    reg_if_id_abort <= 1;
                                     // set pc and csr regs 
                                     pc <= mepc;
                                     reg_if_id_mepc_wr <= 1'b0;
@@ -400,6 +413,7 @@ module pipeline(
                                     reg_if_id_mcause_wr <=  1'b0;
                                     reg_if_id_mstatus_wr <= 1'b0;
                                     reg_if_id_mode_wr <= 1'b0;
+                                    reg_if_id_int_wr <= 1'b0;
                                 end
                             endcase
                         end
@@ -421,6 +435,7 @@ module pipeline(
             else if (time_counter == 1) begin
                 mem_oe <= 1'b0;
                 mem_we <= 1'b0;
+                stop_timeout <= 1'b0;
             end
             // reset forwarding signal
             else if (time_counter >= 2 && mem_done == 1) begin
@@ -476,6 +491,7 @@ module pipeline(
                 reg_id_exe_mode_wr <= reg_if_id_mode_wr;
                 reg_id_exe_tlb_clr <= ins_tlb_clr;
                 reg_id_exe_jump <= reg_if_id_jump;
+                reg_id_exe_int_wr <= reg_if_id_int_wr;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_exe == 0) begin
@@ -506,6 +522,7 @@ module pipeline(
                 reg_exe_mem_mode_wr <= reg_id_exe_mode_wr;
                 reg_exe_mem_tlb_clr <= reg_id_exe_tlb_clr;
                 reg_exe_mem_jump <= reg_id_exe_jump;
+                reg_exe_mem_int_wr <= reg_id_exe_int_wr;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_mem == 0) begin
@@ -530,6 +547,7 @@ module pipeline(
                 reg_mem_wb_mstatus_wr <= reg_exe_mem_mstatus_wr;
                 reg_mem_wb_mode_data <= reg_exe_mem_mode_data;
                 reg_mem_wb_mode_wr <= reg_exe_mem_mode_wr;
+                reg_mem_wb_int_wr <= reg_exe_mem_int_wr;
             end
             // bubble insertion
             else if (time_counter >= 2 && mem_done == 1 && stall_wb == 0) begin
@@ -553,7 +571,7 @@ module pipeline(
                     csr_we <= 1'b0;
                 end
             end
-            else if (stall_wb == 0) begin
+            if (stall_wb == 0 && reg_mem_wb_abort == 0 && reg_mem_wb_int_wr == 1) begin
                 if (time_counter == 0 && reg_mem_wb_mepc_wr) begin
                     mepc_we <= 1'b1;
                     mepc_wdata <= reg_mem_wb_mepc_data;
@@ -574,6 +592,7 @@ module pipeline(
                     mepc_we <= 1'b0;
                     mcause_we <= 1'b0;
                     mstatus_we <= 1'b0;
+                    mode_we <= 1'b0;
                 end
             end
         end

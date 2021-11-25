@@ -9,7 +9,7 @@ module thinpad_top(
     input wire          reset_btn,
 
     // input wire[3:0]     touch_btn,
-    // input wire[31:0]    dip_sw,
+    input wire[31:0]    dip_sw,
     // output wire[15:0]   leds,
     // output wire[7:0]    dpy0,
     // output wire[7:0]    dpy1,
@@ -35,7 +35,16 @@ module thinpad_top(
     output wire[3:0]    ext_ram_be_n,
     output wire         ext_ram_ce_n,
     output wire         ext_ram_oe_n,
-    output wire         ext_ram_we_n
+    output wire         ext_ram_we_n,
+
+    // VGA signal
+    output wire[2:0] video_red,    
+    output wire[2:0] video_green,  
+    output wire[1:0] video_blue,   
+    output wire video_hsync,       
+    output wire video_vsync,       
+    output wire video_clk,         
+    output wire video_de  
 );
 
     // interface to sram and uart
@@ -46,6 +55,7 @@ module thinpad_top(
     /*(* dont_touch = "true" *)*/ wire                mem_done;
     /*(* dont_touch = "true" *)*/ wire                timeout;
     /*(* dont_touch = "true" *)*/ wire[3:0]           mem_exception;
+    /*(* dont_touch = "true" *)*/ wire                stop_timeout;
 
     // interface to decoder
     /*(* dont_touch = "true" *)*/ wire[31:0]          instr;
@@ -61,6 +71,8 @@ module thinpad_top(
     /*(* dont_touch = "true" *)*/ wire                tlb_clr;
     /*(* dont_touch = "true" *)*/ wire[3:0]           decoder_exception;
     /*(* dont_touch = "true" *)*/ wire[3:0]           pred, succ;
+    /*(* dont_touch = "true" *)*/ wire                game_trigger_start;
+    /*(* dont_touch = "true" *)*/ wire                game_trigger_stop;
 
     // interface to br_comparator
     /*(* dont_touch = "true" *)*/ wire[31:0]          id_dat_a, id_dat_b;
@@ -106,13 +118,33 @@ module thinpad_top(
     /*(* dont_touch = "true" *)*/ wire[4:0]           reg_waddr;
     /*(* dont_touch = "true" *)*/ wire[31:0]          reg_wdata;
     /*(* dont_touch = "true" *)*/ wire                reg_we;
-    /*(* dont_touch = "true" *)*/ wire[4:0]           reg_raddr1, reg_raddr2;
-    /*(* dont_touch = "true" *)*/ wire[31:0]          reg_rdata1, reg_rdata2;
+    /*(* dont_touch = "true" *)*/ wire[4:0]           reg_raddr1, reg_raddr2, reg_raddr3;
+    /*(* dont_touch = "true" *)*/ wire[31:0]          reg_rdata1, reg_rdata2, reg_rdata3;
+    assign reg_raddr3 = dip_sw[4:0];
 
     // interface to alu
     /*(* dont_touch = "true" *)*/ wire[4:0]           alu_op;
     /*(* dont_touch = "true" *)*/ wire[31:0]          alu_data_a, alu_data_b, alu_data_r;
     /*(* dont_touch = "true" *)*/ wire[3:0]           alu_flag;
+
+    // interface to vga
+    /*(* dont_touch = "true" *)*/ wire[11:0]          hdata, vdata;
+    assign video_clk = clk_50M;
+
+    // interface to bram
+    // /*(* dont_touch = "true" *)*/ wire[7:0]           bram_din;
+    // /*(* dont_touch = "true" *)*/ wire[13:0]          bram_addr;
+    // /*(* dont_touch = "true" *)*/ wire                bram_we;
+    /*(* dont_touch = "true" *)*/ wire[3:0]           game_row;
+    /*(* dont_touch = "true" *)*/ wire[3:0]           game_column;
+    /*(* dont_touch = "true" *)*/ wire                game_write;
+    /*(* dont_touch = "true" *)*/ wire                game_clear;
+    /*(* dont_touch = "true" *)*/ wire                game_lock;
+    assign game_row = dip_sw[7:4];
+    assign game_column = dip_sw[3:0];
+    assign game_write = dip_sw[8];
+    assign game_clear = dip_sw[9];
+    assign game_lock = dip_sw[10];
 
     sram _sram(
         .clk            (clk_50M),
@@ -153,6 +185,7 @@ module thinpad_top(
         .satp           (satp),
         .mode           (mode),
         .timeout        (timeout),
+        .stop_timeout   (stop_timeout),
         .exception      (mem_exception)
     );
 
@@ -178,7 +211,9 @@ module thinpad_top(
         .tlb_clr        (tlb_clr),
         .exception      (decoder_exception),
         .pred           (pred),
-        .succ           (succ)
+        .succ           (succ),
+        .game_trigger_start (game_trigger_start),
+        .game_trigger_stop  (game_trigger_stop)
     );
 
     csr_regfile _csr_regfile(
@@ -238,7 +273,9 @@ module thinpad_top(
         .raddr1         (reg_raddr1),
         .rdata1         (reg_rdata1),
         .raddr2         (reg_raddr2),
-        .rdata2         (reg_rdata2)
+        .rdata2         (reg_rdata2),
+        .raddr3         (reg_raddr3),
+        .rdata3         (reg_rdata3)
     );
 
     alu _alu(
@@ -268,6 +305,7 @@ module thinpad_top(
         .mem_done       (mem_done),
         .mem_exception  (mem_exception),
         .timeout        (timeout),
+        .stop_timeout   (stop_timeout),
 
         // interface to decoder
         .instr              (instr),
@@ -347,6 +385,38 @@ module thinpad_top(
         .alu_data_b     (alu_data_b),
         .alu_data_r     (alu_data_r),
         .alu_flag       (alu_flag)
+    );
+
+    vga #(12, 800, 856, 976, 1040, 600, 637, 643, 666, 1, 1) _vga(
+        .clk            (clk_50M),
+        .rst            (reset_btn), 
+        .hdata          (hdata), 
+        .vdata          (vdata),      
+        .hsync          (video_hsync),
+        .vsync          (video_vsync),
+        .data_enable    (video_de)
+    );
+
+    bram #(14, 8, 800, 600, 4) _bram(
+        .clk                (clk_50M),
+        .rst                (reset_btn),
+        .hdata              (hdata),
+        .vdata              (vdata),
+        .show_num           (reg_rdata3),
+        .red_out            (video_red),
+        .green_out          (video_green),
+        .blue_out           (video_blue),
+        .game_row           (game_row),
+        .game_column        (game_column),
+        .game_write         (game_write),
+        .game_clear         (game_clear),
+        .game_lock          (game_lock),
+        .game_trigger_start (game_trigger_start),
+        .game_trigger_stop  (game_trigger_stop)
+        // .din            (bram_din),
+        // .addr           (bram_addr),
+        // .we             (bram_we),
+
     );
 
 endmodule

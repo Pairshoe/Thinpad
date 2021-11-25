@@ -26,7 +26,9 @@ module decoder(
     output wire             tlb_clr,
     output wire[3:0]        exception,
     output reg[3:0]         pred,
-    output reg[3:0]         succ
+    output reg[3:0]         succ,
+    output wire             game_trigger_start,
+    output wire             game_trigger_stop
 );
 
     wire        sign;
@@ -58,6 +60,8 @@ module decoder(
     assign mem_wr = mem_wr_reg, mem_to_reg = mem_to_reg_reg, reg_wr = reg_wr_reg, csr_reg_wr = csr_reg_wr_reg;
     assign tlb_clr = tlb_clr_reg;
     assign exception = exception_reg;
+    assign game_trigger_start = (inst == 32'h017f0f93); // start life game in vga
+    assign game_trigger_stop = (inst == 32'h015f0f93); // stop life game in vga
 
     always @(*) begin
         ext_op_reg = `OP_INVALID;

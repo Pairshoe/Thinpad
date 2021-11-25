@@ -11,7 +11,9 @@ module regfile(
     input wire[4:0]     raddr1,
     output reg[31:0]    rdata1,
     input wire[4:0]     raddr2,
-    output reg[31:0]    rdata2
+    output reg[31:0]    rdata2,
+    input wire[4:0]     raddr3,
+    output reg[31:0]    rdata3
 );
 
     reg[31:0]           registers[0:31];
@@ -71,6 +73,15 @@ module regfile(
         end
         else begin
             rdata2 = registers[raddr2];
+        end
+    end
+
+    always @(*) begin
+        if (raddr3 == 5'b00000) begin
+            rdata3 = 32'h00000000;
+        end
+        else begin
+            rdata3 = registers[raddr3];
         end
     end
 
