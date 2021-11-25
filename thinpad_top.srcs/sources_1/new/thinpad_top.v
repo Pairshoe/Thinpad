@@ -55,7 +55,6 @@ module thinpad_top(
     /*(* dont_touch = "true" *)*/ wire                mem_done;
     /*(* dont_touch = "true" *)*/ wire                timeout;
     /*(* dont_touch = "true" *)*/ wire[3:0]           mem_exception;
-    /*(* dont_touch = "true" *)*/ wire                stop_timeout;
 
     // interface to decoder
     /*(* dont_touch = "true" *)*/ wire[31:0]          instr;
@@ -185,7 +184,6 @@ module thinpad_top(
         .satp           (satp),
         .mode           (mode),
         .timeout        (timeout),
-        .stop_timeout   (stop_timeout),
         .exception      (mem_exception)
     );
 
@@ -305,7 +303,6 @@ module thinpad_top(
         .mem_done       (mem_done),
         .mem_exception  (mem_exception),
         .timeout        (timeout),
-        .stop_timeout   (stop_timeout),
 
         // interface to decoder
         .instr              (instr),

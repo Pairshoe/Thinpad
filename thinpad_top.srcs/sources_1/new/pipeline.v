@@ -20,7 +20,6 @@ module pipeline(
     input wire        mem_done,
     input wire[3:0]   mem_exception,
     input wire        timeout,
-    output reg        stop_timeout,
 
     // interface to decoder
     output wire[31:0] instr,
@@ -187,7 +186,7 @@ module pipeline(
     reg               reg_mem_wb_mode_wr;
     reg               reg_mem_wb_int_wr;
 
-    reg[3:0]          stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb;
+    reg[3:0]          stall_structural_hazard, stall_if, stall_id, stall_exe, stall_mem, stall_wb, stall_timeout;
     reg[31:0]         pc;
     reg[4:0]          time_counter;
     reg[1:0]          forwarding_select_a, forwarding_select_b;
@@ -242,7 +241,7 @@ module pipeline(
             // reset regfile control signal
             regfile_we <= 1'b0;
             // reset stall signal
-            stall_structural_hazard <= 0;  stall_if <= 0;  stall_id <= 0;  stall_exe <= 0;  stall_mem <= 0;  stall_wb <= 0;
+            stall_structural_hazard <= 0;  stall_if <= 0;  stall_id <= 0;  stall_exe <= 0;  stall_mem <= 0;  stall_wb <= 0;  stall_timeout <= 0;
             // reset time counter
             time_counter <= 0;
             // reset abort signal
@@ -251,8 +250,6 @@ module pipeline(
             forwarding_select_a <= 0;  forwarding_select_b <= 0;
             // reset valid
             valid <= 32'b0;
-            // stop timeout
-            stop_timeout <= 1'b0;
         end
         else begin
             // 7 clk posedges for a cycle
@@ -264,16 +261,14 @@ module pipeline(
             stall_exe <= (time_counter >= 2 && mem_done == 1) ? (stall_exe > 0 ? stall_exe - 1 : 0) : stall_exe;
             stall_mem <= (time_counter >= 2 && mem_done == 1) ? (stall_mem > 0 ? stall_mem - 1 : 0) : stall_mem;
             stall_wb <= (time_counter >= 2 && mem_done == 1) ? (stall_wb > 0 ? stall_wb - 1 : 0) : stall_wb;
+            stall_timeout <= (time_counter >= 2 && mem_done == 1) ? (stall_timeout > 0 ? stall_timeout - 1 : 0) : stall_timeout;
 
             if (time_counter == 0) begin
                 // interrupt handle, highest priority
-                if (timeout && mode == 2'b00) begin //timer interrupt and in user mode
+                if (timeout && mode == 2'b00 && stall_timeout == 0) begin //timer interrupt and in user mode
                     // enable int csr write
                     reg_if_id_int_wr <= 1'b1;
-                    // stall if for 4 cycles
-                    stall_if <= 4;
-                    // tell sram to stop sending timeout signal
-                    stop_timeout <= 1'b1;
+                    stall_timeout <= 4;
                     // set pc and csr regs
                     pc <= mtvec[1:0] == 2'b00 ? { mtvec[31:2], 2'b00 } : { mtvec[31:2], 2'b00 } + { { 26{ 1'b0 } }, `M_TIMER_INT, 2'b00 };
                     reg_if_id_mepc_wr <= 1'b0;
@@ -435,7 +430,6 @@ module pipeline(
             else if (time_counter == 1) begin
                 mem_oe <= 1'b0;
                 mem_we <= 1'b0;
-                stop_timeout <= 1'b0;
             end
             // reset forwarding signal
             else if (time_counter >= 2 && mem_done == 1) begin

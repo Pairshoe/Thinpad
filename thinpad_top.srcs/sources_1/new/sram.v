@@ -46,7 +46,6 @@ module sram(
     input wire[31:0]    satp,
     input wire[1:0]     mode,
     output wire         timeout,
-    output wire         stop_timeout,
     output wire[3:0]    exception
 );
 
@@ -398,10 +397,7 @@ module sram(
 
             case(mtime_state) 
                 `STATE_IDLE: begin
-                    if (stop_timeout) begin
-                        reg_timeout <= 1'b0;
-                    end
-                    else if (mode == 2'b00) begin
+                    if (mode == 2'b00) begin
                         mtime_state <= `STATE_FINISHED;
                         if ((reg_mtimecmp_hi < reg_mtime_hi) || (reg_mtime_hi == reg_mtimecmp_hi && reg_mtimecmp_lo < reg_mtime_lo)) begin
                             reg_timeout <= 1'b1;
@@ -416,9 +412,6 @@ module sram(
 
                 default: begin
                     mtime_state <= `STATE_IDLE;
-                    if (stop_timeout) begin
-                        reg_timeout <= 1'b0;
-                    end
                     if (reg_mtime_lo == { 32 { 1'b1 } }) begin
                         reg_mtime_lo <= 32'b0;
                         reg_mtime_hi <= reg_mtime_hi + 1;
